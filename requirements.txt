@@ -1,0 +1,4 @@
+opencv-contrib-python>=4.8,<5   # OpenCV 5 pip paketida Haar cascade fayllari yo'q
+numpy
+fastapi
+uvicorn

@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Face Attendance — Live Demo</title>
+<style>
+  :root { --bg: #f6f7f9; --card: #fff; --text: #1b1f24; --muted: #6b7280; --line: #e5e7eb; --ok: #15803d; --no: #b91c1c; --accent: #2563eb; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+  main { max-width: 960px; margin: 0 auto; padding: 32px 16px; }
+  header { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+  h1 { margin: 0; font-size: 24px; }
+  .sub { color: var(--muted); font-size: 14px; margin-top: 4px; }
+  nav a { color: var(--accent); text-decoration: none; font-size: 14px; margin-left: 16px; }
+  .layout { display: grid; grid-template-columns: 1fr 280px; gap: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .stage { position: relative; width: 100%; aspect-ratio: 4 / 3; background: #111; border-radius: 8px; overflow: hidden; }
+  video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: block; }
+  canvas#overlay { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .placeholder { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #cbd5e1; font-size: 15px; text-align: center; padding: 16px; }
+  .controls { display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  button { font: inherit; padding: 9px 16px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; }
+  button.secondary { background: var(--card); color: var(--text); border-color: var(--line); }
+  button:disabled { opacity: .5; cursor: default; }
+  #status { color: var(--muted); font-size: 13px; }
+  h2 { margin: 0 0 10px; font-size: 15px; }
+  .face { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .face:last-child { border-bottom: none; }
+  .known { color: var(--ok); font-weight: 600; }
+  .unknown { color: var(--no); font-weight: 600; }
+  .muted { color: var(--muted); font-size: 13px; line-height: 1.5; }
+  .toast { margin-top: 10px; padding: 10px 12px; border-radius: 8px; background: #dcfce7; color: var(--ok); font-size: 14px; display: none; }
+  .side > .card + .card { margin-top: 16px; }
+  @media (max-width: 760px) { .layout { grid-template-columns: 1fr; } nav a { margin: 0 16px 0 0; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>Face Attendance — Live Demo</h1>
+      <div class="sub">Real-time face recognition with OpenCV (Haar cascade + LBPH), served by FastAPI</div>
+    </div>
+    <nav>
+      <a href="/dashboard">Admin dashboard →</a>
+      <a href="https://github.com/Alisherbakh/face-attendance" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </header>
+
+  <section class="layout">
+    <div class="card">
+      <div class="stage">
+        <video id="video" playsinline muted></video>
+        <canvas id="overlay"></canvas>
+        <div class="placeholder" id="placeholder">Press "Start camera" and allow camera access</div>
+      </div>
+      <div class="controls">
+        <button id="start">Start camera</button>
+        <button id="stop" class="secondary" disabled>Stop</button>
+        <span id="status"></span>
+      </div>
+      <div class="toast" id="toast"></div>
+    </div>
+
+    <div class="side">
+      <div class="card">
+        <h2>Faces in view</h2>
+        <div id="faces"><div class="muted">No faces yet.</div></div>
+      </div>
+      <div class="card">
+        <h2>How it works</h2>
+        <div class="muted">
+          About twice a second, one frame is sent to the server. OpenCV finds faces, and an LBPH model compares each face with the people it was trained on.
+          A person is checked in after 5 matching frames in a row.<br><br>
+          The model knows 11 people (10 from the LFW dataset and the author), so you will most likely see <b>Unknown</b> — that is the expected result.<br><br>
+          <b>Privacy:</b> frames are processed in memory and never saved.
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+  const video = document.getElementById('video');
+  const overlay = document.getElementById('overlay');
+  const ctx = overlay.getContext('2d');
+  const startBtn = document.getElementById('start');
+  const stopBtn = document.getElementById('stop');
+  const statusEl = document.getElementById('status');
+  const facesEl = document.getElementById('faces');
+  const toastEl = document.getElementById('toast');
+  const placeholder = document.getElementById('placeholder');
+
+  const SEND_WIDTH = 640;          // kadr serverga shu kenglikda yuboriladi
+  const INTERVAL_MS = 500;         // har 0.5 soniyada bitta kadr
+  const grab = document.createElement('canvas');
+  let stream = null, timer = null, busy = false;
+  const checkedIn = new Set();
+
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  async function start() {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      statusEl.textContent = 'Camera needs HTTPS (or localhost).';
+      return;
+    }
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: 'user' }, audio: false });
+    } catch (e) {
+      statusEl.textContent = 'Camera permission was denied.';
+      return;
+    }
+    video.srcObject = stream;
+    await video.play();
+    placeholder.style.display = 'none';
+    startBtn.disabled = true; stopBtn.disabled = false;
+    statusEl.textContent = 'Recognizing…';
+    timer = setInterval(tick, INTERVAL_MS);
+  }
+
+  function stop() {
+    clearInterval(timer); timer = null;
+    stream?.getTracks().forEach(t => t.stop()); stream = null;
+    video.srcObject = null;
+    ctx.clearRect(0, 0, overlay.width, overlay.height);
+    placeholder.style.display = 'flex';
+    startBtn.disabled = false; stopBtn.disabled = true;
+    statusEl.textContent = 'Stopped.';
+  }
+
+  async function tick() {
+    if (busy || !video.videoWidth) return;
+    busy = true;
+    try {
+      const scale = SEND_WIDTH / video.videoWidth;
+      grab.width = SEND_WIDTH;
+      grab.height = Math.round(video.videoHeight * scale);
+      grab.getContext('2d').drawImage(video, 0, 0, grab.width, grab.height);
+      const blob = await new Promise(r => grab.toBlob(r, 'image/jpeg', 0.8));
+      const res = await fetch('/api/recognize', { method: 'POST', headers: { 'Content-Type': 'image/jpeg' }, body: blob });
+      if (!res.ok) { statusEl.textContent = `Server error ${res.status}`; return; }
+      const data = await res.json();
+      draw(data);
+      list(data.faces);
+      statusEl.textContent = 'Recognizing…';
+    } catch (e) {
+      statusEl.textContent = 'Connection problem, retrying…';
+    } finally {
+      busy = false;
+    }
+  }
+
+  // Video ko'zgu kabi ko'rsatiladi, shuning uchun ramkaning x koordinatasini teskari qilamiz
+  function draw({ faces, width, height }) {
+    const rect = overlay.getBoundingClientRect();
+    overlay.width = rect.width; overlay.height = rect.height;
+    // video "object-fit: cover" bilan kesilgan: o'sha masshtab va siljishni hisoblaymiz
+    const s = Math.max(rect.width / width, rect.height / height);
+    const offX = (rect.width - width * s) / 2, offY = (rect.height - height * s) / 2;
+    ctx.clearRect(0, 0, overlay.width, overlay.height);
+    ctx.lineWidth = 3;
+    ctx.font = '600 15px -apple-system, sans-serif';
+    for (const f of faces) {
+      const [x, y, w, h] = f.box;
+      const bx = offX + (width - x - w) * s, by = offY + y * s, bw = w * s, bh = h * s;
+      const color = f.name === 'Unknown' ? '#dc2626' : '#16a34a';
+      ctx.strokeStyle = color;
+      ctx.strokeRect(bx, by, bw, bh);
+      const label = `${f.name} ${f.distance}${f.checked_in ? '  ✓' : ''}`;
+      const tw = ctx.measureText(label).width + 12;
+      ctx.fillStyle = color;
+      ctx.fillRect(bx, Math.max(0, by - 26), Math.max(tw, bw), 26);
+      ctx.fillStyle = '#fff';
+      ctx.fillText(label, bx + 6, Math.max(18, by - 8));
+    }
+  }
+
+  function list(faces) {
+    if (!faces.length) { facesEl.innerHTML = '<div class="muted">No face detected. Face the camera in good light.</div>'; return; }
+    facesEl.innerHTML = faces.map(f =>
+      `<div class="face"><span class="${f.name === 'Unknown' ? 'unknown' : 'known'}">${esc(f.name)}</span><span class="muted">distance ${esc(f.distance)}</span></div>`).join('');
+    for (const f of faces) {
+      if (f.checked_in && !checkedIn.has(f.name)) {
+        checkedIn.add(f.name);
+        toastEl.textContent = `✓ ${f.name} checked in.`;
+        toastEl.style.display = 'block';
+      }
+    }
+  }
+
+  startBtn.addEventListener('click', start);
+  stopBtn.addEventListener('click', stop);
+</script>
+</body>
+</html>

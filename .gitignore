@@ -1,0 +1,12 @@
+# Yuz rasmlari va model — shaxsiy ma'lumot, GitHub'ga yuklanmaydi
+dataset/
+kaggle_raw/
+models/
+attendance.db
+
+# Admin login va parol xeshi — hech qachon GitHub'ga yuklanmaydi
+.env
+
+venv/
+__pycache__/
+.DS_Store

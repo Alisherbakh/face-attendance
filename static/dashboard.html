@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Face Attendance</title>
+<style>
+  :root { --bg: #f6f7f9; --card: #fff; --text: #1b1f24; --muted: #6b7280; --line: #e5e7eb; --ok: #15803d; --no: #b91c1c; --accent: #2563eb; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+  main { max-width: 880px; margin: 0 auto; padding: 32px 16px; }
+  header { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+  h1 { margin: 0; font-size: 24px; }
+  .sub { color: var(--muted); font-size: 14px; margin-top: 4px; }
+  input[type=date] { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .stat .n { font-size: 28px; font-weight: 700; }
+  .stat .l { color: var(--muted); font-size: 13px; }
+  .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .card h2 { margin: 0 0 12px; font-size: 15px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 4px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  .tag { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 13px; margin: 0 6px 6px 0; background: #fee2e2; color: var(--no); }
+  .ok { color: var(--ok); font-weight: 600; }
+  .empty { color: var(--muted); font-size: 14px; }
+  @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } .stats { grid-template-columns: 1fr 1fr 1fr; } .stat .n { font-size: 22px; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>Face Attendance</h1>
+      <div class="sub">Real-time attendance with OpenCV face recognition · refreshes every 5 s</div>
+    </div>
+    <div style="display:flex;gap:16px;align-items:center">
+      <a href="/" style="color:var(--accent);text-decoration:none;font-size:14px">← Live demo</a>
+      <input type="date" id="day">
+      <button id="logout" style="font:inherit;font-size:14px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);cursor:pointer">Log out</button>
+    </div>
+  </header>
+
+  <section class="stats">
+    <div class="stat"><div class="n" id="present-n">0</div><div class="l">Present</div></div>
+    <div class="stat"><div class="n" id="absent-n">0</div><div class="l">Absent</div></div>
+    <div class="stat"><div class="n" id="rate">0%</div><div class="l">Attendance rate</div></div>
+  </section>
+
+  <section class="grid">
+    <div class="card">
+      <h2>Checked in</h2>
+      <table>
+        <thead><tr><th>Name</th><th>Time</th><th>Match distance</th></tr></thead>
+        <tbody id="present"></tbody>
+      </table>
+      <div class="empty" id="present-empty">No one has checked in yet.</div>
+    </div>
+    <div class="card">
+      <h2>Not yet</h2>
+      <div id="absent"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+  const dayInput = document.getElementById('day');
+  const today = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD, local time
+  dayInput.value = today;
+
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  async function load() {
+    const res = await fetch(`/api/attendance?day=${dayInput.value}`);
+    if (res.status === 401) { location.href = '/login'; return; }  // sessiya tugagan
+    if (!res.ok) return;
+    const data = await res.json();
+
+    document.getElementById('present-n').textContent = data.present.length;
+    document.getElementById('absent-n').textContent = data.absent.length;
+    document.getElementById('rate').textContent =
+      data.total ? Math.round(data.present.length / data.total * 100) + '%' : '0%';
+
+    document.getElementById('present').innerHTML = data.present.map(r =>
+      `<tr><td class="ok">${esc(r.name)}</td><td>${esc(r.time)}</td><td>${esc(r.distance ?? '')}</td></tr>`).join('');
+    document.getElementById('present-empty').style.display = data.present.length ? 'none' : 'block';
+
+    document.getElementById('absent').innerHTML = data.absent.length
+      ? data.absent.map(n => `<span class="tag">${esc(n)}</span>`).join('')
+      : '<div class="empty">Everyone is here.</div>';
+  }
+
+  dayInput.addEventListener('change', load);
+  document.getElementById('logout').addEventListener('click', async () => {
+    await fetch('/api/logout', { method: 'POST' });
+    location.href = '/';
+  });
+  load();
+  setInterval(load, 5000);
+</script>
+</body>
+</html>
