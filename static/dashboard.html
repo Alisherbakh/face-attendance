@@ -3,102 +3,318 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Face Attendance</title>
+<title>Dashboard — Face Attendance</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f46e5'/%3E%3Cpath d='M9 13v-2a2 2 0 0 1 2-2h2M19 9h2a2 2 0 0 1 2 2v2M23 19v2a2 2 0 0 1-2 2h-2M13 23h-2a2 2 0 0 1-2-2v-2' stroke='white' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/assets/app.css">
 <style>
-  :root { --bg: #f6f7f9; --card: #fff; --text: #1b1f24; --muted: #6b7280; --line: #e5e7eb; --ok: #15803d; --no: #b91c1c; --accent: #2563eb; }
-  * { box-sizing: border-box; }
-  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
-  main { max-width: 880px; margin: 0 auto; padding: 32px 16px; }
-  header { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
-  h1 { margin: 0; font-size: 24px; }
-  .sub { color: var(--muted); font-size: 14px; margin-top: 4px; }
-  input[type=date] { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
-  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
-  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
-  .stat .n { font-size: 28px; font-weight: 700; }
-  .stat .l { color: var(--muted); font-size: 13px; }
-  .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
-  .card h2 { margin: 0 0 12px; font-size: 15px; }
+  .page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+  .page-head h1 { font-size: 28px; font-weight: 700; letter-spacing: -.02em; }
+  .page-head .sub { color: var(--muted); font-size: 14px; margin-top: 4px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .live { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; }
+  .live .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); }
+  .live.paused .dot { background: var(--faint); box-shadow: none; }
+  .daynav { display: flex; align-items: center; gap: 6px; }
+  .daynav svg { width: 16px; height: 16px; }
+
+  .banner { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px; background: var(--no-soft); color: var(--no); font-size: 14px; margin-bottom: 16px; }
+  .banner svg { width: 16px; height: 16px; flex: none; }
+
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .stat { padding: 16px 18px; }
+  .stat .l { color: var(--muted); font-size: 13px; font-weight: 550; }
+  .stat .n { font-size: 30px; font-weight: 700; letter-spacing: -.02em; margin-top: 4px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+  .stat .n small { font-size: 15px; font-weight: 550; color: var(--muted); letter-spacing: 0; }
+  .stat .d { font-size: 12.5px; color: var(--muted); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar { height: 6px; border-radius: 99px; background: var(--surface-2); margin-top: 10px; overflow: hidden; }
+  .bar span { display: block; height: 100%; border-radius: 99px; background: var(--ok); transition: width .4s; }
+
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+  .side { display: flex; flex-direction: column; gap: 16px; }
+  .tools { display: flex; gap: 8px; align-items: center; }
+  .tools input { width: 180px; min-height: 34px; padding: 6px 10px 6px 32px; font-size: 13.5px;
+                 background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a919c' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 10px center; }
+
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th, td { text-align: left; padding: 8px 4px; border-bottom: 1px solid var(--line); }
-  th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
-  .tag { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 13px; margin: 0 6px 6px 0; background: #fee2e2; color: var(--no); }
-  .ok { color: var(--ok); font-weight: 600; }
-  .empty { color: var(--muted); font-size: 14px; }
-  @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } .stats { grid-template-columns: 1fr 1fr 1fr; } .stat .n { font-size: 22px; } }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; padding-top: 0; }
+  th:first-child, td:first-child { padding-left: 0; }
+  th:last-child, td:last-child { padding-right: 0; text-align: right; }
+  tbody tr:last-child td { border-bottom: none; }
+  .who { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+  .dist { color: var(--muted); font-size: 12.5px; margin-left: 6px; }
+
+  .people { list-style: none; margin: 0; padding: 0; }
+  .people li { display: flex; align-items: center; gap: 10px; padding: 7px 0; font-size: 14px; }
+  .people li .avatar { width: 30px; height: 30px; font-size: 12px; opacity: .8; }
+
+  .chart { position: relative; }
+  .chart svg { display: block; width: 100%; overflow: visible; }
+  .chart .bar-hit { cursor: pointer; }
+  .chart .axis { fill: var(--faint); font: 11px var(--font); font-variant-numeric: tabular-nums; }
+  .tip { position: absolute; pointer-events: none; transform: translate(-50%, calc(-100% - 10px)); background: var(--text); color: var(--bg); font-size: 12.5px; padding: 6px 10px; border-radius: 8px; white-space: nowrap; box-shadow: var(--shadow); }
+  .tip b { font-weight: 650; }
+
+  @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 560px) {
+    .page-head h1 { font-size: 24px; }
+    .stat .n { font-size: 24px; }
+    .tools { width: 100%; } .tools input { flex: 1; width: auto; }
+    .hide-sm { display: none; }
+  }
 </style>
 </head>
 <body>
-<main>
-  <header>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/dashboard">
+      <span class="brand-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M9 10h.01M15 10h.01M9.5 15a3.5 3.5 0 0 0 5 0"/></svg></span>
+      Face Attendance
+    </a>
+    <nav class="nav">
+      <a href="/" title="Open the camera on this device; check-ins are recorded while you are signed in">Open kiosk</a>
+      <button class="btn btn-ghost btn-sm" id="logout">Log out</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="page-head">
     <div>
-      <h1>Face Attendance</h1>
-      <div class="sub">Real-time attendance with OpenCV face recognition · refreshes every 5 s</div>
+      <h1 id="title">Today</h1>
+      <div class="sub"><span id="date-long"></span><span class="live" id="live"><span class="dot"></span><span id="live-text">Live</span></span></div>
     </div>
-    <div style="display:flex;gap:16px;align-items:center">
-      <a href="/" style="color:var(--accent);text-decoration:none;font-size:14px">← Live demo</a>
-      <input type="date" id="day">
-      <button id="logout" style="font:inherit;font-size:14px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);cursor:pointer">Log out</button>
+    <div class="daynav">
+      <button class="btn btn-ghost btn-icon" id="prev" aria-label="Previous day" title="Previous day (←)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+      <input type="date" id="day" aria-label="Day">
+      <button class="btn btn-ghost btn-icon" id="next" aria-label="Next day" title="Next day (→)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+      <button class="btn btn-ghost btn-sm" id="today">Today</button>
     </div>
-  </header>
+  </div>
+
+  <div class="banner" id="banner" role="alert" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+    <span>Can't reach the server. Showing the last data received; retrying automatically.</span>
+  </div>
 
   <section class="stats">
-    <div class="stat"><div class="n" id="present-n">0</div><div class="l">Present</div></div>
-    <div class="stat"><div class="n" id="absent-n">0</div><div class="l">Absent</div></div>
-    <div class="stat"><div class="n" id="rate">0%</div><div class="l">Attendance rate</div></div>
+    <div class="card stat"><div class="l">Present</div><div class="n" id="present-n">–</div><div class="d" id="present-d">&nbsp;</div></div>
+    <div class="card stat"><div class="l">Not checked in</div><div class="n" id="absent-n">–</div><div class="d" id="absent-d">&nbsp;</div></div>
+    <div class="card stat"><div class="l">Attendance rate</div><div class="n" id="rate">–</div><div class="bar"><span id="rate-bar" style="width:0"></span></div></div>
+    <div class="card stat"><div class="l">First check-in</div><div class="n" id="first">–</div><div class="d" id="first-d">&nbsp;</div></div>
   </section>
 
   <section class="grid">
     <div class="card">
-      <h2>Checked in</h2>
+      <div class="card-head">
+        <h2>Checked in <span class="count" id="present-count">0</span></h2>
+        <div class="tools">
+          <input type="search" id="search" placeholder="Search people" aria-label="Search people">
+          <button class="btn btn-ghost btn-sm" id="export" title="Download this day as CSV">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+            <span class="hide-sm">CSV</span>
+          </button>
+        </div>
+      </div>
       <table>
-        <thead><tr><th>Name</th><th>Time</th><th>Match distance</th></tr></thead>
-        <tbody id="present"></tbody>
+        <thead><tr><th>Person</th><th>Time</th><th>Match</th></tr></thead>
+        <tbody id="present">
+          <tr><td colspan="3"><div class="skeleton" style="height:16px;width:60%"></div></td></tr>
+          <tr><td colspan="3"><div class="skeleton" style="height:16px;width:45%"></div></td></tr>
+        </tbody>
       </table>
-      <div class="empty" id="present-empty">No one has checked in yet.</div>
+      <div id="present-empty" hidden></div>
     </div>
-    <div class="card">
-      <h2>Not yet</h2>
-      <div id="absent"></div>
+
+    <div class="side">
+      <div class="card">
+        <div class="card-head" style="margin-bottom:8px"><h2>Not checked in <span class="count" id="absent-count">0</span></h2></div>
+        <ul class="people" id="absent"></ul>
+      </div>
+      <div class="card">
+        <div class="card-head" style="margin-bottom:10px"><h2>Check-ins, last 30 days</h2></div>
+        <div class="chart" id="chart"></div>
+        <div class="sr-only"><table id="chart-table"></table></div>
+      </div>
     </div>
   </section>
 </main>
 
+<script src="/assets/app.js"></script>
 <script>
-  const dayInput = document.getElementById('day');
-  const today = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD, local time
-  dayInput.value = today;
+  const $ = id => document.getElementById(id);
+  const dayInput = $('day');
+  const iso = d => d.toLocaleDateString('sv-SE');           // YYYY-MM-DD, mahalliy vaqt
+  const parse = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+  const shift = (s, n) => { const d = parse(s); d.setDate(d.getDate() + n); return iso(d); };
+  const today = () => iso(new Date());
 
-  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  let threshold = 75, last = null, days = [];
+  dayInput.value = today();
+  dayInput.max = today();
 
-  async function load() {
-    const res = await fetch(`/api/attendance?day=${dayInput.value}`);
-    if (res.status === 401) { location.href = '/login'; return; }  // sessiya tugagan
-    if (!res.ok) return;
-    const data = await res.json();
-
-    document.getElementById('present-n').textContent = data.present.length;
-    document.getElementById('absent-n').textContent = data.absent.length;
-    document.getElementById('rate').textContent =
-      data.total ? Math.round(data.present.length / data.total * 100) + '%' : '0%';
-
-    document.getElementById('present').innerHTML = data.present.map(r =>
-      `<tr><td class="ok">${esc(r.name)}</td><td>${esc(r.time)}</td><td>${esc(r.distance ?? '')}</td></tr>`).join('');
-    document.getElementById('present-empty').style.display = data.present.length ? 'none' : 'block';
-
-    document.getElementById('absent').innerHTML = data.absent.length
-      ? data.absent.map(n => `<span class="tag">${esc(n)}</span>`).join('')
-      : '<div class="empty">Everyone is here.</div>';
+  async function getJSON(url) {
+    const res = await fetch(url);
+    if (res.status === 401) { location.href = '/login'; throw new Error('auth'); }  // sessiya tugagan
+    if (!res.ok) throw new Error(res.status);
+    return res.json();
   }
 
-  dayInput.addEventListener('change', load);
-  document.getElementById('logout').addEventListener('click', async () => {
+  async function load() {
+    try {
+      const [data, d] = await Promise.all([getJSON(`/api/attendance?day=${dayInput.value}`), getJSON('/api/days')]);
+      $('banner').hidden = true;
+      last = data; days = d;
+      render();
+      renderChart();
+      $('live-text').textContent = isToday() ? `Live · updated ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : 'Past day';
+    } catch (e) {
+      if (e.message !== 'auth') $('banner').hidden = false;
+    }
+  }
+
+  const isToday = () => dayInput.value === today();
+
+  function renderHead() {
+    const d = parse(dayInput.value), t = today();
+    $('title').textContent = dayInput.value === t ? 'Today' : dayInput.value === shift(t, -1) ? 'Yesterday' : d.toLocaleDateString([], { month: 'long', day: 'numeric' });
+    $('date-long').textContent = d.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    $('next').disabled = dayInput.value >= t;
+    $('live').classList.toggle('paused', !isToday());
+  }
+
+  function render() {
+    if (!last) return;
+    const q = $('search').value.trim().toLowerCase();
+    const match = n => !q || pretty(n).toLowerCase().includes(q);
+    const { present, absent, total } = last;
+
+    $('present-n').innerHTML = `${present.length}<small> / ${total}</small>`;
+    $('present-d').textContent = total ? `${total} registered people` : 'No one is registered yet';
+    $('absent-n').textContent = absent.length;
+    $('absent-d').textContent = absent.length ? `${absent.slice(0, 3).map(pretty).join(', ')}${absent.length > 3 ? '…' : ''}` : 'Everyone is here';
+    const rate = total ? Math.round(present.length / total * 100) : 0;
+    $('rate').textContent = `${rate}%`;
+    $('rate-bar').style.width = `${rate}%`;
+    const first = present[0];
+    $('first').textContent = first ? first.time.slice(0, 5) : '–';
+    $('first-d').textContent = first ? pretty(first.name) : 'No check-ins yet';
+
+    const rows = present.filter(r => match(r.name));
+    $('present-count').textContent = present.length;
+    $('present').innerHTML = rows.map(r => {
+      const qy = matchQuality(r.distance, threshold);
+      return `<tr>
+        <td><div class="who">${avatar(r.name)}<span>${esc(pretty(r.name))}</span></div></td>
+        <td class="num">${esc(r.time.slice(0, 5))}</td>
+        <td><span class="pill ${qy.cls}">${qy.label}</span><span class="dist num mono hide-sm">${esc(r.distance ?? '')}</span></td>
+      </tr>`;
+    }).join('');
+    const empty = $('present-empty');
+    empty.hidden = rows.length > 0;
+    empty.innerHTML = q
+      ? `<div class="empty"><strong>No matches</strong>No one named “${esc(q)}” checked in.</div>`
+      : `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><strong>No check-ins ${isToday() ? 'yet' : 'on this day'}</strong>${isToday() ? 'Open the kiosk on a device with a camera to start.' : 'Pick another day above.'}</div>`;
+
+    const abs = absent.filter(match);
+    $('absent-count').textContent = absent.length;
+    $('absent').innerHTML = abs.length
+      ? abs.map(n => `<li>${avatar(n)}<span>${esc(pretty(n))}</span></li>`).join('')
+      : `<li class="empty" style="display:block">${absent.length ? 'No matches' : '<strong>Everyone is here</strong>Full attendance.'}</li>`;
+  }
+
+  // ---------- 30 kunlik grafik (bitta qator: bitta rang, legend kerak emas) ----------
+  function renderChart() {
+    const box = $('chart'), W = box.clientWidth || 300, H = 140, padB = 20, padT = 8, padL = 22;
+    const counts = new Map(days.map(d => [d.day, d.count]));
+    const series = [];
+    for (let i = 29; i >= 0; i--) { const day = shift(today(), -i); series.push({ day, count: counts.get(day) || 0 }); }
+    const max = Math.max(1, last?.total || 0, ...series.map(s => s.count));
+    const plotW = W - padL, plotH = H - padB - padT, slot = plotW / series.length, bw = Math.max(2, slot - 2);
+    const y = v => padT + plotH - (v / max) * plotH;
+    const fmt = s => parse(s).toLocaleDateString([], { day: 'numeric', month: 'short' });
+
+    // faqat tepasi yumaloq ustun
+    const barPath = (x, top, w, h) => {
+      const r = Math.min(4, w / 2, h);
+      return `M${x},${top + h}V${top + r}Q${x},${top} ${x + r},${top}H${x + w - r}Q${x + w},${top} ${x + w},${top + r}V${top + h}Z`;
+    };
+
+    let svg = `<svg width="${W}" height="${H}" role="img" aria-label="Check-ins per day over the last 30 days">`;
+    svg += `<line x1="${padL}" x2="${W}" y1="${y(max)}" y2="${y(max)}" stroke="var(--line)" stroke-dasharray="3 3"/>`;
+    svg += `<line x1="${padL}" x2="${W}" y1="${y(0)}" y2="${y(0)}" stroke="var(--line)"/>`;
+    svg += `<text class="axis" x="${padL - 6}" y="${y(max) + 4}" text-anchor="end">${max}</text>`;
+    svg += `<text class="axis" x="${padL - 6}" y="${y(0) + 4}" text-anchor="end">0</text>`;
+    series.forEach((s, i) => {
+      const x = padL + i * slot + 1, h = y(0) - y(s.count), sel = s.day === dayInput.value;
+      if (s.count) svg += `<path d="${barPath(x, y(s.count), bw, h)}" fill="var(--chart)" opacity="${sel ? 1 : 0.75}"/>`;
+      if (sel) svg += `<circle cx="${x + bw / 2}" cy="${H - padB + 7}" r="2.5" fill="var(--text)"/>`;
+      svg += `<rect class="bar-hit" data-i="${i}" x="${padL + i * slot}" y="${padT}" width="${slot}" height="${plotH + 12}" fill="transparent"/>`;
+    });
+    svg += `<text class="axis" x="${padL}" y="${H - 2}">${fmt(series[0].day)}</text>`;
+    svg += `<text class="axis" x="${W}" y="${H - 2}" text-anchor="end">Today</text>`;
+    svg += '</svg><div class="tip" id="tip" hidden></div>';
+    box.innerHTML = svg;
+
+    const tip = $('tip');
+    box.querySelectorAll('.bar-hit').forEach(el => {
+      const s = series[+el.dataset.i];
+      el.addEventListener('mouseenter', () => {
+        tip.innerHTML = `<b>${fmt(s.day)}</b> · ${s.count} checked in`;
+        tip.style.left = `${+el.getAttribute('x') + slot / 2}px`;
+        tip.style.top = `${y(s.count)}px`;
+        tip.hidden = false;
+      });
+      el.addEventListener('mouseleave', () => { tip.hidden = true; });
+      el.addEventListener('click', () => goTo(s.day));
+    });
+
+    $('chart-table').innerHTML = '<caption>Check-ins per day</caption><tr><th>Day</th><th>Check-ins</th></tr>' +
+      series.map(s => `<tr><td>${s.day}</td><td>${s.count}</td></tr>`).join('');
+  }
+
+  function goTo(day) {
+    if (day > today()) return;
+    dayInput.value = day;
+    renderHead();
+    load();
+  }
+
+  function exportCsv() {
+    if (!last) return;
+    const lines = [['name', 'day', 'time', 'distance'], ...last.present.map(r => [pretty(r.name), r.day, r.time, r.distance ?? ''])];
+    const csv = lines.map(l => l.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = `attendance-${last.day}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  dayInput.addEventListener('change', () => dayInput.value && goTo(dayInput.value));
+  $('prev').addEventListener('click', () => goTo(shift(dayInput.value, -1)));
+  $('next').addEventListener('click', () => goTo(shift(dayInput.value, 1)));
+  $('today').addEventListener('click', () => goTo(today()));
+  $('search').addEventListener('input', render);
+  $('export').addEventListener('click', exportCsv);
+  document.addEventListener('keydown', e => {
+    if (e.target.matches('input, textarea')) return;
+    if (e.key === 'ArrowLeft') goTo(shift(dayInput.value, -1));
+    if (e.key === 'ArrowRight') goTo(shift(dayInput.value, 1));
+  });
+  $('logout').addEventListener('click', async () => {
     await fetch('/api/logout', { method: 'POST' });
     location.href = '/';
   });
+  let resizeTimer;
+  window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(renderChart, 150); });
+
+  fetch('/api/me').then(r => r.json()).then(me => { threshold = me.threshold; render(); }).catch(() => {});
+
+  renderHead();
   load();
-  setInterval(load, 5000);
+  // Faqat bugungi kun va ochiq tab yangilanadi
+  setInterval(() => { if (isToday() && !document.hidden) load(); }, 5000);
 </script>
 </body>
 </html>

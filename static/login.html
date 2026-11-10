@@ -4,62 +4,120 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Admin Login — Face Attendance</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f46e5'/%3E%3Cpath d='M9 13v-2a2 2 0 0 1 2-2h2M19 9h2a2 2 0 0 1 2 2v2M23 19v2a2 2 0 0 1-2 2h-2M13 23h-2a2 2 0 0 1-2-2v-2' stroke='white' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/assets/app.css">
 <style>
-  :root { --bg: #f6f7f9; --card: #fff; --text: #1b1f24; --muted: #6b7280; --line: #e5e7eb; --no: #b91c1c; --accent: #2563eb; }
-  * { box-sizing: border-box; }
-  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px;
-         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
-  .card { width: 100%; max-width: 360px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 28px 24px; }
-  h1 { margin: 0 0 4px; font-size: 20px; }
-  .sub { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
-  label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 6px; }
-  input { width: 100%; font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; }
-  input:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
-  button { width: 100%; margin-top: 20px; font: inherit; padding: 10px; border: none; border-radius: 8px; background: var(--accent); color: #fff; cursor: pointer; }
-  button:disabled { opacity: .6; cursor: default; }
-  #error { color: var(--no); font-size: 14px; margin-top: 12px; min-height: 20px; }
-  a { display: block; text-align: center; margin-top: 16px; color: var(--accent); text-decoration: none; font-size: 14px; }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 16px; gap: 22px;
+         background: radial-gradient(1200px 600px at 50% -10%, var(--accent-soft), transparent 70%), var(--bg); }
+  .login { width: 100%; max-width: 380px; padding: 28px 24px 24px; }
+  .login h1 { font-size: 21px; font-weight: 700; }
+  .login .sub { color: var(--muted); font-size: 14px; margin: 4px 0 22px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 13px; font-weight: 550; margin-bottom: 6px; }
+  .field input { width: 100%; }
+  .pw { position: relative; }
+  .pw input { padding-right: 64px; }
+  .pw button { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font: 600 12.5px var(--font); color: var(--muted); background: none; border: 0; padding: 6px 8px; border-radius: 6px; cursor: pointer; }
+  .pw button:hover { color: var(--text); background: var(--surface-2); }
+  .caps { font-size: 12.5px; color: var(--warn); margin-top: 6px; display: flex; align-items: center; gap: 6px; }
+  .caps svg { width: 14px; height: 14px; }
+  .error { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; color: var(--no); background: var(--no-soft); padding: 10px 12px; border-radius: 10px; margin-bottom: 14px; }
+  .error svg { width: 16px; height: 16px; flex: none; margin-top: 1px; }
+  .submit { width: 100%; margin-top: 6px; }
+  .spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .shake { animation: shake .35s; }
+  @keyframes shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+  .back { font-size: 14px; color: var(--muted); }
+  .back:hover { color: var(--text); }
 </style>
 </head>
 <body>
-<form class="card" id="form">
-  <h1>Admin login</h1>
-  <div class="sub">Face Attendance dashboard</div>
-  <label for="username">Login</label>
-  <input id="username" autocomplete="username" required autofocus>
-  <label for="password">Password</label>
-  <input id="password" type="password" autocomplete="current-password" required>
-  <button id="submit">Log in</button>
-  <div id="error"></div>
-  <a href="/">← Back to live demo</a>
+<a class="brand" href="/">
+  <span class="brand-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M9 10h.01M15 10h.01M9.5 15a3.5 3.5 0 0 0 5 0"/></svg></span>
+  Face Attendance
+</a>
+
+<form class="card login" id="form" novalidate>
+  <h1>Admin sign in</h1>
+  <p class="sub">See who checked in today, and turn this device into a check-in kiosk.</p>
+
+  <div class="error" id="error" role="alert" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+    <span id="error-text"></span>
+  </div>
+
+  <div class="field">
+    <label for="username">Login</label>
+    <input type="text" id="username" autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus>
+  </div>
+  <div class="field">
+    <label for="password">Password</label>
+    <div class="pw">
+      <input type="password" id="password" autocomplete="current-password" required>
+      <button type="button" id="reveal" aria-controls="password" aria-pressed="false">Show</button>
+    </div>
+    <div class="caps" id="caps" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 4 8 8h-4v6H8v-6H4z"/></svg>
+      Caps Lock is on
+    </div>
+  </div>
+  <button class="btn btn-primary submit" id="submit">Sign in</button>
 </form>
 
+<a class="back" href="/">← Back to the live demo</a>
+
+<script src="/assets/app.js"></script>
 <script>
   const form = document.getElementById('form');
-  const errorEl = document.getElementById('error');
   const submit = document.getElementById('submit');
+  const user = document.getElementById('username');
+  const pass = document.getElementById('password');
+  const errorBox = document.getElementById('error');
+  const reveal = document.getElementById('reveal');
+
+  function showError(message) {
+    document.getElementById('error-text').textContent = message;
+    errorBox.hidden = false;
+    form.classList.remove('shake'); void form.offsetWidth; form.classList.add('shake');
+  }
+
+  reveal.addEventListener('click', () => {
+    const show = pass.type === 'password';
+    pass.type = show ? 'text' : 'password';
+    reveal.textContent = show ? 'Hide' : 'Show';
+    reveal.setAttribute('aria-pressed', show);
+    pass.focus();
+  });
+
+  const caps = document.getElementById('caps');
+  pass.addEventListener('keyup', e => { caps.hidden = !e.getModifierState?.('CapsLock'); });
+  pass.addEventListener('blur', () => { caps.hidden = true; });
 
   form.addEventListener('submit', async e => {
     e.preventDefault();
-    errorEl.textContent = '';
+    errorBox.hidden = true;
+    if (!user.value.trim()) { showError('Enter your login.'); user.focus(); return; }
+    if (!pass.value) { showError('Enter your password.'); pass.focus(); return; }
+
     submit.disabled = true;
+    submit.innerHTML = '<span class="spinner" aria-hidden="true"></span> Signing in…';
     try {
       const res = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: document.getElementById('username').value.trim(),
-          password: document.getElementById('password').value,
-        }),
+        body: JSON.stringify({ username: user.value.trim(), password: pass.value }),
       });
       if (res.ok) { location.href = '/dashboard'; return; }
       const data = await res.json().catch(() => ({}));
-      errorEl.textContent = data.detail || 'Login failed';
+      showError(data.detail || 'Sign in failed.');
+      if (res.status === 401) { pass.select(); }
     } catch {
-      errorEl.textContent = 'Connection problem, try again.';
-    } finally {
-      submit.disabled = false;
+      showError('Connection problem. Check your network and try again.');
     }
+    submit.disabled = false;
+    submit.textContent = 'Sign in';
   });
 </script>
 </body>

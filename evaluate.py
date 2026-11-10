@@ -47,7 +47,7 @@ def main():
     # Chegara (threshold) ta'siri: past chegara = kam xato, lekin ko'proq "Unknown"
     print(f"{'Chegara':>8} | {'Qabul qilindi':>13} | {'Qabul qilinganlarda aniqlik':>27}")
     print("-" * 56)
-    for th in (40, 50, 60, 70, 80, 90, 100):
+    for th in sorted({40, 50, 60, 70, 80, 90, 100, THRESHOLD}):  # hozirgi chegara ham jadvalda bo'lsin
         accepted = [(t, p) for t, p, d in results if d < th]
         acc = sum(t == p for t, p in accepted) / len(accepted) if accepted else 0
         mark = "  <- hozirgi" if th == THRESHOLD else ""

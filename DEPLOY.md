@@ -23,7 +23,7 @@ browser camera -> POST /api/recognize (JPEG) -> FastAPI + OpenCV on the VPS -> b
 First create the admin account (once). It asks for a login and a password and saves them to `.env` (the password is stored only as a hash, and `.env` is never pushed to git):
 
 ```bash
-cd ~/Desktop/faceRecognation
+cd ~/Desktop/projects/faceRecognation
 source venv/bin/activate
 python set_admin.py
 uvicorn api:app --reload
@@ -31,8 +31,9 @@ uvicorn api:app --reload
 
 Open `http://127.0.0.1:8000`, press **Start camera**, and allow access.
 
-- You should see a green box with your name. After 5 matching frames a ✓ appears and you are checked in.
-- Open `http://127.0.0.1:8000/dashboard`. You are sent to the login page; after logging in you see the check-in.
+- You should see a green box with your name. Nothing is recorded yet: public visitors only see recognition.
+- Open `http://127.0.0.1:8000/dashboard`. You are sent to the login page; log in.
+- Go back to `http://127.0.0.1:8000` in the same browser. Now the device acts as a check-in kiosk: after 5 matching frames a ✓ appears and you are checked in. Refresh the dashboard to see it.
 - Hold up a photo of someone else on your phone: it should show red **Unknown**.
 
 `recognize.py` (the desktop window version) still works as before; the browser demo is an extra way to use the same model.
@@ -67,7 +68,7 @@ pip install -r requirements-server.txt
 The model is not in git, so copy it directly. Run this **on your Mac**:
 
 ```bash
-cd ~/Desktop/faceRecognation
+cd ~/Desktop/projects/faceRecognation
 scp -r models user@VPS_IP:~/face-attendance/
 ```
 

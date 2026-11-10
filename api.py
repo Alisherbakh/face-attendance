@@ -16,6 +16,7 @@ import cv2
 import numpy as np
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from auth import COOKIE_NAME, SESSION_SECONDS, AdminAuth
@@ -29,6 +30,8 @@ MAX_IMAGE_BYTES = 2_000_000   # bitta kadr uchun eng ko'p 2 MB
 STREAK_GAP_SECONDS = 3        # shu vaqtdan ko'p tanilmasa, ketma-ketlik nolga tushadi
 
 app = FastAPI(title="Face Attendance API")
+# faqat umumiy CSS/JS; HTML sahifalar pastdagi yo'llar orqali (admin tekshiruvi bilan) beriladi
+app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="assets")
 
 _lock = threading.Lock()      # model bir vaqtda bitta so'rovga ishlaydi
 _model = {}                   # recognizer, names, detector (birinchi so'rovda yuklanadi)
@@ -49,27 +52,37 @@ def load_model():
     return _model
 
 
+TRUSTED_PROXIES = {"127.0.0.1", "::1"}   # Nginx shu manzildan ulanadi
+
+
 def client_id(request: Request) -> str:
-    """Nginx orqasida haqiqiy IP X-Forwarded-For sarlavhasida keladi."""
+    """Nginx orqasida haqiqiy IP X-Forwarded-For sarlavhasida keladi.
+
+    Sarlavhaning boshini mijoz o'zi yozib yuborishi mumkin, shuning uchun
+    faqat oxirgi qiymatni olamiz — uni Nginx ($proxy_add_x_forwarded_for) qo'shadi.
+    Sarlavhaga faqat so'rov Nginx'dan (localhost'dan) kelganda ishonamiz.
+    """
+    peer = request.client.host if request.client else "unknown"
     forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
+    if forwarded and peer in TRUSTED_PROXIES:
+        return forwarded.split(",")[-1].strip()
+    return peer
 
 
-def confirm(client: str, name: str, distance: float) -> bool:
-    """Bir odam ketma-ket CONFIRM_FRAMES marta tanilsa — davomat yoziladi."""
+def confirm(client: str, name: str, distance: float) -> int:
+    """Bir odam ketma-ket CONFIRM_FRAMES marta tanilsa — davomat yoziladi.
+
+    Ketma-ketlik sonini qaytaradi (brauzer "3/5" kabi jarayonni ko'rsatadi).
+    """
     now = time.time()
     count, last = _streaks.get((client, name), (0, 0))
     count = count + 1 if now - last < STREAK_GAP_SECONDS else 1
     _streaks[(client, name)] = (count, now)
-    if count < CONFIRM_FRAMES:
-        return False
     if count == CONFIRM_FRAMES:
         conn = connect()
         mark_attendance(conn, name, distance)
         conn.close()
-    return True
+    return count
 
 
 def registered_people():
@@ -147,7 +160,11 @@ def dashboard_page(request: Request):
 
 @app.post("/api/recognize")
 async def recognize(request: Request):
-    """Body: bitta JPEG kadr (Content-Type: image/jpeg). Javob: topilgan yuzlar ro'yxati."""
+    """Body: bitta JPEG kadr (Content-Type: image/jpeg). Javob: topilgan yuzlar ro'yxati.
+
+    Tanish hamma uchun ishlaydi, lekin davomat faqat admin kirgan qurilmadan yoziladi
+    (masalan, eshik oldidagi planshet). Aks holda istalgan tashrifchi davomat yozib qo'ya oladi.
+    """
     body = await request.body()
     if not body:
         raise HTTPException(status_code=400, detail="Empty image")
@@ -159,6 +176,8 @@ async def recognize(request: Request):
         raise HTTPException(status_code=400, detail="Not a valid image")
 
     client = client_id(request)
+    # ?mode=photo — yuklangan rasm: tanish mumkin, lekin davomat yozilmaydi
+    kiosk = is_admin(request) and request.query_params.get("mode") != "photo"
     faces = []
     with _lock:
         model = load_model()
@@ -166,14 +185,28 @@ async def recognize(request: Request):
             label, distance = model["recognizer"].predict(crop_face(gray, box))
             known = distance < THRESHOLD
             name = model["names"][str(label)] if known else "Unknown"
+            streak = confirm(client, name, distance) if known and kiosk else 0
             x, y, w, h = (int(v) for v in box)
             faces.append({
                 "box": [x, y, w, h],
                 "name": name,
                 "distance": round(float(distance), 1),
-                "checked_in": known and confirm(client, name, distance),
+                "streak": min(streak, CONFIRM_FRAMES),
+                "checked_in": streak >= CONFIRM_FRAMES,
             })
-    return {"faces": faces, "width": int(gray.shape[1]), "height": int(gray.shape[0])}
+    return {"faces": faces, "width": int(gray.shape[1]), "height": int(gray.shape[0]),
+            "records_attendance": kiosk}
+
+
+@app.get("/api/me")
+def me(request: Request):
+    """Sahifalar uchun: admin kirganmi va model sozlamalari (ismlarsiz, faqat soni)."""
+    return {
+        "admin": is_admin(request),
+        "people": len(registered_people()),
+        "threshold": THRESHOLD,
+        "confirm_frames": CONFIRM_FRAMES,
+    }
 
 
 @app.get("/api/attendance", dependencies=[Depends(require_admin)])

@@ -2,9 +2,7 @@
 
 Real-time attendance system that recognizes faces from a webcam with OpenCV and records check-ins in a database, with a live web dashboard.
 
-**Live demo:** [ ] · try it with your own camera — see [DEPLOY.md](DEPLOY.md)
-
-![Demo](docs/demo.gif)
+Try it with your own camera: run it locally (see [Getting started](#getting-started)) or deploy it to a server (see [DEPLOY.md](DEPLOY.md)).
 
 ## Features
 
@@ -12,7 +10,7 @@ Real-time attendance system that recognizes faces from a webcam with OpenCV and 
 - **Training** — LBPH face recognizer (OpenCV `cv2.face`) trained on your own dataset
 - **Evaluation** — 80/20 train/test split, accuracy and a threshold trade-off table
 - **Live recognition** — names drawn on the video; attendance recorded once per person per day, only after 5 consecutive matching frames
-- **Browser demo** — the webcam runs in the browser; frames go to `POST /api/recognize` and are processed in memory, never stored
+- **Browser demo** — the webcam runs in the browser; frames go to `POST /api/recognize` and are processed in memory, never stored. Anyone can try recognition, but check-ins are recorded only on a device where the admin is logged in (kiosk mode)
 - **Admin dashboard** — who checked in, when, and who is absent; protected by a single admin login (PBKDF2-hashed password, signed HttpOnly session cookie, lockout after 5 failed attempts)
 - **Kaggle support** — prepare public face datasets (e.g. LFW) for larger-scale testing
 
@@ -28,7 +26,7 @@ LBPH (Local Binary Patterns Histograms) compares each pixel with its 8 neighbour
 
 | Model | People | Test images | Accuracy |
 | --- | --- | --- | --- |
-| Haar + LBPH | [ ] | [ ] | [ ]% |
+| Haar + LBPH | 11 (10 from LFW + the author) | 130 | 86.9% |
 | YuNet + SFace (planned) | | | |
 
 ## Tech stack
@@ -66,13 +64,19 @@ auth.py            admin password hashing and signed session cookie
 set_admin.py       create or change the admin login
 static/demo.html   browser camera demo
 static/login.html  admin login page
-static/dashboard.html  attendance dashboard
+static/dashboard.html  attendance dashboard (stats, search, CSV export, 30-day chart)
+static/assets/     shared CSS and JS (light and dark theme)
 ecosystem.config.js, deploy/  VPS deployment (PM2, Nginx)
 ```
 
 ## Privacy
 
 Face images, trained models, the attendance database and the admin credentials (`.env`) are excluded from the repository (`.gitignore`). Collect faces only with the person's consent.
+
+## Known limitations
+
+- **No liveness check.** LBPH compares texture only, so a printed photo or a face on a phone screen can be recognized as that person. A production system would add liveness detection (blink or head-movement challenge, or a depth/IR camera).
+- LBPH is sensitive to lighting and head angle; see Next steps.
 
 ## Next steps
 

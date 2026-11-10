@@ -18,7 +18,7 @@ collect_faces.py  ->  dataset/  ->  train.py  ->  models/trainer.yml
 | `evaluate.py` | Measures model accuracy (80% train / 20% test) |
 | `recognize.py` | Real-time recognition and attendance recording |
 | `db.py` | SQLite database access |
-| `api.py` + `static/index.html` | FastAPI server and attendance dashboard |
+| `api.py` + `static/` | FastAPI server, browser demo, login page and attendance dashboard |
 
 ---
 
@@ -27,7 +27,7 @@ collect_faces.py  ->  dataset/  ->  train.py  ->  models/trainer.yml
 Open a terminal in the project folder:
 
 ```bash
-cd ~/Desktop/faceRecognation
+cd ~/Desktop/projects/faceRecognation
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -151,7 +151,7 @@ python set_admin.py
 Then open a second terminal (keep `recognize.py` running):
 
 ```bash
-cd ~/Desktop/faceRecognation
+cd ~/Desktop/projects/faceRecognation
 source venv/bin/activate
 uvicorn api:app --reload
 ```
@@ -165,6 +165,7 @@ API endpoints:
 | `GET /api/attendance?day=2026-10-30` | Who was present and absent that day |
 | `GET /api/days` | The last 30 days and how many people checked in each day |
 | `GET /api/people` | Registered people |
+| `GET /api/me` | Whether the admin is signed in, the number of people, and the threshold (used by the pages) |
 | `GET /docs` | FastAPI's automatic Swagger documentation |
 
 ---

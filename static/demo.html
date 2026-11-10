@@ -4,193 +4,464 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Face Attendance — Live Demo</title>
+<meta name="description" content="Real-time face recognition in the browser with OpenCV (Haar cascade + LBPH) and FastAPI.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f46e5'/%3E%3Cpath d='M9 13v-2a2 2 0 0 1 2-2h2M19 9h2a2 2 0 0 1 2 2v2M23 19v2a2 2 0 0 1-2 2h-2M13 23h-2a2 2 0 0 1-2-2v-2' stroke='white' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/assets/app.css">
 <style>
-  :root { --bg: #f6f7f9; --card: #fff; --text: #1b1f24; --muted: #6b7280; --line: #e5e7eb; --ok: #15803d; --no: #b91c1c; --accent: #2563eb; }
-  * { box-sizing: border-box; }
-  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
-  main { max-width: 960px; margin: 0 auto; padding: 32px 16px; }
-  header { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
-  h1 { margin: 0; font-size: 24px; }
-  .sub { color: var(--muted); font-size: 14px; margin-top: 4px; }
-  nav a { color: var(--accent); text-decoration: none; font-size: 14px; margin-left: 16px; }
-  .layout { display: grid; grid-template-columns: 1fr 280px; gap: 16px; }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
-  .stage { position: relative; width: 100%; aspect-ratio: 4 / 3; background: #111; border-radius: 8px; overflow: hidden; }
-  video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: block; }
-  canvas#overlay { position: absolute; inset: 0; width: 100%; height: 100%; }
-  .placeholder { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #cbd5e1; font-size: 15px; text-align: center; padding: 16px; }
+  .hero { margin-bottom: 24px; max-width: 720px; }
+  .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  .hero h1 { font-size: clamp(26px, 4vw, 36px); font-weight: 700; letter-spacing: -.02em; }
+  .lead { color: var(--muted); font-size: 16px; margin: 10px 0 14px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips span { font-size: 12.5px; color: var(--muted); padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+  .stage-card { padding: 14px; }
+  .stage-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 0 2px 12px; flex-wrap: wrap; }
+  .stage-head h2 { font-size: 15px; }
+
+  .stage { position: relative; width: 100%; aspect-ratio: 4 / 3; background: var(--stage); border-radius: 12px; overflow: hidden; }
+  .stage video, .stage img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .stage video { object-fit: cover; transform: scaleX(-1); }
+  .stage img { object-fit: contain; }
+  .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+  .placeholder { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; padding: 24px; color: #c9ced8; }
+  .placeholder .ph-icon { width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; background: rgba(255,255,255,.06); color: #e5e7eb; margin-bottom: 6px; }
+  .placeholder .ph-icon svg { width: 26px; height: 26px; }
+  .placeholder.error .ph-icon { background: rgba(244,63,94,.15); color: #fb7185; }
+  .placeholder strong { color: #f3f4f6; font-size: 17px; font-weight: 650; }
+  .placeholder span { font-size: 14px; max-width: 360px; color: #9ca3af; }
+
+  .chip-live { position: absolute; top: 12px; left: 12px; display: inline-flex; align-items: center; gap: 8px; padding: 5px 10px; border-radius: 999px; background: rgba(0,0,0,.55); color: #fff; font: 600 12px var(--font); backdrop-filter: blur(6px); }
+  .chip-live .dot { width: 8px; height: 8px; border-radius: 50%; background: #f43f5e; animation: pulse 1.6s infinite; }
+  .chip-live .lat { color: #cbd5e1; font: 500 11.5px var(--mono); }
+  @keyframes pulse { 50% { opacity: .35; } }
+
+  .hint { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); max-width: calc(100% - 28px); padding: 8px 14px; border-radius: 999px; background: rgba(0,0,0,.6); color: #f3f4f6; font-size: 13.5px; text-align: center; backdrop-filter: blur(6px); }
+
   .controls { display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
-  button { font: inherit; padding: 9px 16px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; }
-  button.secondary { background: var(--card); color: var(--text); border-color: var(--line); }
-  button:disabled { opacity: .5; cursor: default; }
-  #status { color: var(--muted); font-size: 13px; }
-  h2 { margin: 0 0 10px; font-size: 15px; }
-  .face { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
-  .face:last-child { border-bottom: none; }
-  .known { color: var(--ok); font-weight: 600; }
-  .unknown { color: var(--no); font-weight: 600; }
-  .muted { color: var(--muted); font-size: 13px; line-height: 1.5; }
-  .toast { margin-top: 10px; padding: 10px 12px; border-radius: 8px; background: #dcfce7; color: var(--ok); font-size: 14px; display: none; }
-  .side > .card + .card { margin-top: 16px; }
-  @media (max-width: 760px) { .layout { grid-template-columns: 1fr; } nav a { margin: 0 16px 0 0; } }
+  .controls .spacer { flex: 1; }
+  .controls .kbd-hint { font-size: 12.5px; color: var(--faint); }
+
+  .side { display: flex; flex-direction: column; gap: 16px; }
+  .face { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .face:first-child { border-top: none; padding-top: 0; }
+  .face .meta { flex: 1; min-width: 0; }
+  .face .name { font-weight: 600; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .face .sub { font-size: 12.5px; color: var(--muted); }
+  .meter { position: relative; height: 5px; border-radius: 99px; background: var(--surface-2); margin-top: 6px; overflow: hidden; }
+  .meter > span { position: absolute; inset: 0 auto 0 0; border-radius: 99px; transition: width .3s; }
+  .meter > i { position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; background: var(--surface); }
+
+  .session { list-style: none; margin: 0; padding: 0; }
+  .session li { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 14px; }
+  .session li .time { margin-left: auto; color: var(--muted); font-size: 12.5px; }
+
+  .steps { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+  .steps li { position: relative; padding: 0 0 12px 34px; font-size: 13.5px; color: var(--muted); }
+  .steps li::before { counter-increment: step; content: counter(step); position: absolute; left: 0; top: 0; width: 22px; height: 22px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font: 650 12px var(--font); display: grid; place-items: center; }
+  .steps b { color: var(--text); font-weight: 600; }
+  .note { font-size: 12.5px; color: var(--muted); padding: 10px 12px; border-radius: 10px; background: var(--surface-2); margin-top: 4px; }
+  .note + .note { margin-top: 8px; }
+  .try { font-size: 13.5px; color: var(--muted); }
+  .try b { color: var(--text); }
+
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+  @media (max-width: 560px) { .controls .kbd-hint { display: none; } .controls .btn { flex: 1; } .stage { aspect-ratio: 3 / 4; } }
 </style>
 </head>
 <body>
-<main>
-  <header>
-    <div>
-      <h1>Face Attendance — Live Demo</h1>
-      <div class="sub">Real-time face recognition with OpenCV (Haar cascade + LBPH), served by FastAPI</div>
-    </div>
-    <nav>
-      <a href="/dashboard">Admin dashboard →</a>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/">
+      <span class="brand-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M9 10h.01M15 10h.01M9.5 15a3.5 3.5 0 0 0 5 0"/></svg></span>
+      Face Attendance
+    </a>
+    <nav class="nav">
       <a href="https://github.com/Alisherbakh/face-attendance" target="_blank" rel="noopener">GitHub</a>
+      <a class="btn btn-ghost btn-sm" id="admin-link" href="/login">Admin login</a>
     </nav>
-  </header>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <div class="eyebrow">Live demo</div>
+    <h1>Real-time face recognition, right in your browser</h1>
+    <p class="lead">Turn on your camera or upload a photo. OpenCV finds each face and an LBPH model compares it with the <span id="people-n">11</span> people it was trained on.</p>
+    <div class="chips"><span>OpenCV</span><span>Haar cascade</span><span>LBPH</span><span>FastAPI</span><span>SQLite</span></div>
+  </section>
 
   <section class="layout">
-    <div class="card">
-      <div class="stage">
+    <div class="card stage-card">
+      <div class="stage-head">
+        <h2>Camera</h2>
+        <span class="badge" id="mode-badge"><span class="dot"></span><span>Demo mode · nothing is recorded</span></span>
+      </div>
+      <div class="stage" id="stage">
         <video id="video" playsinline muted></video>
-        <canvas id="overlay"></canvas>
-        <div class="placeholder" id="placeholder">Press "Start camera" and allow camera access</div>
+        <img id="photo" alt="Uploaded photo" hidden>
+        <canvas id="overlay" aria-hidden="true"></canvas>
+        <div class="placeholder" id="placeholder">
+          <div class="ph-icon" id="ph-icon"></div>
+          <strong id="ph-title"></strong>
+          <span id="ph-text"></span>
+        </div>
+        <div class="chip-live" id="live" hidden><span class="dot"></span>LIVE<span class="lat num" id="latency"></span></div>
+        <div class="hint" id="hint" role="status" hidden></div>
       </div>
       <div class="controls">
-        <button id="start">Start camera</button>
-        <button id="stop" class="secondary" disabled>Stop</button>
-        <span id="status"></span>
+        <button class="btn btn-primary" id="toggle"></button>
+        <button class="btn btn-ghost" id="upload">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-4.5-4.5L5 21"/></svg>
+          Upload a photo
+        </button>
+        <input type="file" id="file" accept="image/*" hidden>
+        <span class="spacer"></span>
+        <span class="kbd-hint">Press <kbd>Space</kbd> to start or stop</span>
       </div>
-      <div class="toast" id="toast"></div>
     </div>
 
-    <div class="side">
+    <aside class="side">
       <div class="card">
-        <h2>Faces in view</h2>
-        <div id="faces"><div class="muted">No faces yet.</div></div>
+        <div class="card-head" style="margin-bottom:10px"><h2>Faces in view <span class="count" id="faces-n">0</span></h2></div>
+        <div id="faces"></div>
       </div>
+
+      <div class="card" id="session-card" hidden>
+        <div class="card-head" style="margin-bottom:6px"><h2>Checked in on this device</h2></div>
+        <ul class="session" id="session"></ul>
+      </div>
+
+      <div class="card" id="try-card">
+        <div class="card-head" style="margin-bottom:8px"><h2>Seeing “Unknown”?</h2></div>
+        <p class="try" style="margin:0">That's the right answer: you aren't in the model. To see a match, upload a photo of someone it knows, such as <b>Tony Blair</b>, <b>Colin Powell</b> or <b>George W. Bush</b> (from the LFW dataset).</p>
+      </div>
+
       <div class="card">
-        <h2>How it works</h2>
-        <div class="muted">
-          About twice a second, one frame is sent to the server. OpenCV finds faces, and an LBPH model compares each face with the people it was trained on.
-          A person is checked in after 5 matching frames in a row.<br><br>
-          The model knows 11 people (10 from the LFW dataset and the author), so you will most likely see <b>Unknown</b> — that is the expected result.<br><br>
-          <b>Privacy:</b> frames are processed in memory and never saved.
-        </div>
+        <div class="card-head" style="margin-bottom:12px"><h2>How it works</h2></div>
+        <ol class="steps">
+          <li><b>Detect.</b> A Haar cascade finds faces in each frame, about twice a second.</li>
+          <li><b>Normalize.</b> Each face is cropped to 200×200 grayscale and its lighting is evened out.</li>
+          <li><b>Compare.</b> LBPH turns skin texture into histograms. The closest person wins if the distance is under <span class="num" id="th-n">75</span>.</li>
+          <li><b>Confirm.</b> On the admin's kiosk device, <span class="num" id="cf-n">5</span> matching frames in a row record a check-in.</li>
+        </ol>
+        <div class="note"><b>Privacy.</b> Frames are processed in memory and never saved.</div>
+        <div class="note"><b>Limitation.</b> LBPH has no liveness check, so a printed photo can fool it.</div>
       </div>
-    </div>
+    </aside>
   </section>
 </main>
 
+<script src="/assets/app.js"></script>
 <script>
-  const video = document.getElementById('video');
-  const overlay = document.getElementById('overlay');
-  const ctx = overlay.getContext('2d');
-  const startBtn = document.getElementById('start');
-  const stopBtn = document.getElementById('stop');
-  const statusEl = document.getElementById('status');
-  const facesEl = document.getElementById('faces');
-  const toastEl = document.getElementById('toast');
-  const placeholder = document.getElementById('placeholder');
+  const $ = id => document.getElementById(id);
+  const video = $('video'), photo = $('photo'), overlay = $('overlay'), ctx = overlay.getContext('2d');
+  const toggleBtn = $('toggle'), uploadBtn = $('upload'), fileInput = $('file');
+  const placeholder = $('placeholder'), hintEl = $('hint'), liveEl = $('live');
 
-  const SEND_WIDTH = 640;          // kadr serverga shu kenglikda yuboriladi
+  const SEND_WIDTH = 640;          // kamera kadri serverga shu kenglikda yuboriladi
+  const PHOTO_MAX = 1280;          // yuklangan rasmning eng katta tomoni
   const INTERVAL_MS = 500;         // har 0.5 soniyada bitta kadr
+  const COLORS = { known: '#10b981', unknown: '#f43f5e', progress: '#818cf8' };
+
+  const ICON = {
+    camera: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="11" r="3"/><path d="M8 17c1-1.5 2.4-2 4-2s3 .5 4 2"/></svg>',
+    alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>',
+    play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>',
+    stop: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>',
+  };
+
+  const cfg = { admin: false, threshold: 75, confirm_frames: 5 };
+  let mode = 'idle';               // 'idle' | 'camera' | 'photo'
+  let stream = null, timer = null, busy = false, emptyTicks = 0, photoUrl = null;
+  let source = null;               // { w, h, mirror, fit } — server ko'rgan rasm o'lchami
+  let target = [], shown = [];     // serverdan kelgan va ekranda silliq harakatlanayotgan ramkalar
   const grab = document.createElement('canvas');
-  let stream = null, timer = null, busy = false;
-  const checkedIn = new Set();
+  const checkedIn = new Map();     // ism -> vaqt
 
-  const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  // ---------- Holat ko'rinishi ----------
+  function showPlaceholder(kind, title, text) {
+    $('ph-icon').innerHTML = kind === 'error' ? ICON.alert : ICON.camera;
+    $('ph-title').textContent = title;
+    $('ph-text').textContent = text;
+    placeholder.className = 'placeholder' + (kind === 'error' ? ' error' : '');
+    placeholder.hidden = false;
+  }
 
-  async function start() {
+  function setHint(text) { hintEl.textContent = text || ''; hintEl.hidden = !text; }
+
+  function setMode(next) {
+    mode = next;
+    const running = mode === 'camera';
+    toggleBtn.innerHTML = running ? `${ICON.stop} Stop camera` : `${ICON.play} Start camera`;
+    toggleBtn.className = 'btn ' + (running ? 'btn-ghost' : 'btn-primary');
+    liveEl.hidden = !running;
+    video.hidden = mode !== 'camera';
+    photo.hidden = mode !== 'photo';
+    if (mode !== 'idle') placeholder.hidden = true;
+  }
+
+  function setKiosk(on) {
+    const badge = $('mode-badge');
+    badge.className = 'badge ' + (on ? 'ok' : '');
+    badge.lastElementChild.textContent = on ? 'Kiosk mode · check-ins are recorded' : 'Demo mode · nothing is recorded';
+  }
+
+  // ---------- Kamera ----------
+  async function startCamera() {
     if (!navigator.mediaDevices?.getUserMedia) {
-      statusEl.textContent = 'Camera needs HTTPS (or localhost).';
+      showPlaceholder('error', 'Camera needs a secure connection', 'Open the https:// link (or localhost), then try again.');
       return;
     }
+    toggleBtn.disabled = true;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: 'user' }, audio: false });
     } catch (e) {
-      statusEl.textContent = 'Camera permission was denied.';
+      toggleBtn.disabled = false;
+      if (e.name === 'NotAllowedError') showPlaceholder('error', 'Camera access is blocked', 'Allow the camera in your browser’s address bar, then press Start camera again.');
+      else if (e.name === 'NotFoundError') showPlaceholder('error', 'No camera found', 'Connect a camera, or upload a photo instead.');
+      else showPlaceholder('error', 'Could not start the camera', 'Another app may be using it. Close it and try again.');
       return;
     }
+    clearPhoto();
     video.srcObject = stream;
     await video.play();
-    placeholder.style.display = 'none';
-    startBtn.disabled = true; stopBtn.disabled = false;
-    statusEl.textContent = 'Recognizing…';
+    toggleBtn.disabled = false;
+    emptyTicks = 0;
+    setMode('camera');
+    setHint('Looking for faces…');
     timer = setInterval(tick, INTERVAL_MS);
   }
 
-  function stop() {
+  function stopCamera() {
     clearInterval(timer); timer = null;
     stream?.getTracks().forEach(t => t.stop()); stream = null;
     video.srcObject = null;
-    ctx.clearRect(0, 0, overlay.width, overlay.height);
-    placeholder.style.display = 'flex';
-    startBtn.disabled = false; stopBtn.disabled = true;
-    statusEl.textContent = 'Stopped.';
+    resetView();
+    showPlaceholder('idle', 'Start the camera to try it', 'Or upload a photo. Frames are processed in memory and never saved.');
+  }
+
+  function resetView() {
+    target = []; shown = []; source = null;
+    setMode('idle');
+    setHint('');
+    renderFaces([]);
   }
 
   async function tick() {
-    if (busy || !video.videoWidth) return;
+    if (busy || document.hidden || !video.videoWidth) return;  // yashirin tabda kadr yubormaymiz
     busy = true;
     try {
-      const scale = SEND_WIDTH / video.videoWidth;
       grab.width = SEND_WIDTH;
-      grab.height = Math.round(video.videoHeight * scale);
+      grab.height = Math.round(video.videoHeight * SEND_WIDTH / video.videoWidth);
       grab.getContext('2d').drawImage(video, 0, 0, grab.width, grab.height);
       const blob = await new Promise(r => grab.toBlob(r, 'image/jpeg', 0.8));
-      const res = await fetch('/api/recognize', { method: 'POST', headers: { 'Content-Type': 'image/jpeg' }, body: blob });
-      if (!res.ok) { statusEl.textContent = `Server error ${res.status}`; return; }
-      const data = await res.json();
-      draw(data);
-      list(data.faces);
-      statusEl.textContent = 'Recognizing…';
-    } catch (e) {
-      statusEl.textContent = 'Connection problem, retrying…';
+      const started = performance.now();
+      const data = await send(blob);
+      if (mode !== 'camera' || !data) return;
+      $('latency').textContent = `${Math.round(performance.now() - started)} ms`;
+      apply(data, { mirror: true, fit: 'cover' });
+      emptyTicks = data.faces.length ? 0 : emptyTicks + 1;
+      if (data.faces.length) setHint('');
+      else if (emptyTicks >= 3) setHint('No face found. Face the camera in good light.');
     } finally {
       busy = false;
     }
   }
 
-  // Video ko'zgu kabi ko'rsatiladi, shuning uchun ramkaning x koordinatasini teskari qilamiz
-  function draw({ faces, width, height }) {
-    const rect = overlay.getBoundingClientRect();
-    overlay.width = rect.width; overlay.height = rect.height;
-    // video "object-fit: cover" bilan kesilgan: o'sha masshtab va siljishni hisoblaymiz
-    const s = Math.max(rect.width / width, rect.height / height);
-    const offX = (rect.width - width * s) / 2, offY = (rect.height - height * s) / 2;
-    ctx.clearRect(0, 0, overlay.width, overlay.height);
-    ctx.lineWidth = 3;
-    ctx.font = '600 15px -apple-system, sans-serif';
-    for (const f of faces) {
-      const [x, y, w, h] = f.box;
-      const bx = offX + (width - x - w) * s, by = offY + y * s, bw = w * s, bh = h * s;
-      const color = f.name === 'Unknown' ? '#dc2626' : '#16a34a';
-      ctx.strokeStyle = color;
-      ctx.strokeRect(bx, by, bw, bh);
-      const label = `${f.name} ${f.distance}${f.checked_in ? '  ✓' : ''}`;
-      const tw = ctx.measureText(label).width + 12;
-      ctx.fillStyle = color;
-      ctx.fillRect(bx, Math.max(0, by - 26), Math.max(tw, bw), 26);
-      ctx.fillStyle = '#fff';
-      ctx.fillText(label, bx + 6, Math.max(18, by - 8));
+  async function send(blob, query = '') {
+    try {
+      const res = await fetch('/api/recognize' + query, { method: 'POST', headers: { 'Content-Type': 'image/jpeg' }, body: blob });
+      if (res.status === 503) { setHint('The model isn’t trained on this server yet.'); return null; }
+      if (!res.ok) { setHint(`Server error ${res.status}. Retrying…`); return null; }
+      return await res.json();
+    } catch {
+      setHint('Connection problem. Retrying…');
+      return null;
     }
   }
 
-  function list(faces) {
-    if (!faces.length) { facesEl.innerHTML = '<div class="muted">No face detected. Face the camera in good light.</div>'; return; }
-    facesEl.innerHTML = faces.map(f =>
-      `<div class="face"><span class="${f.name === 'Unknown' ? 'unknown' : 'known'}">${esc(f.name)}</span><span class="muted">distance ${esc(f.distance)}</span></div>`).join('');
-    for (const f of faces) {
+  // ---------- Rasm yuklash ----------
+  async function analyzePhoto(file) {
+    if (!file || !file.type.startsWith('image/')) { toast('Please choose an image file.', 'no'); return; }
+    if (mode === 'camera') stopCamera();
+    let bitmap;
+    try { bitmap = await createImageBitmap(file); }
+    catch { toast('That image could not be opened.', 'no'); return; }
+
+    // Katta rasmni kichraytiramiz: serverga 2 MB dan kam yuborish uchun
+    const scale = Math.min(1, PHOTO_MAX / Math.max(bitmap.width, bitmap.height));
+    grab.width = Math.round(bitmap.width * scale);
+    grab.height = Math.round(bitmap.height * scale);
+    grab.getContext('2d').drawImage(bitmap, 0, 0, grab.width, grab.height);
+    const blob = await new Promise(r => grab.toBlob(r, 'image/jpeg', 0.88));
+
+    clearPhoto();
+    photoUrl = URL.createObjectURL(blob);
+    photo.src = photoUrl;
+    target = []; shown = [];
+    setMode('photo');
+    setHint('Analyzing photo…');
+    uploadBtn.disabled = true;
+    const data = await send(blob, '?mode=photo');   // rasm hech qachon davomat yozmaydi
+    uploadBtn.disabled = false;
+    if (mode !== 'photo' || !data) return;
+    apply(data, { mirror: false, fit: 'contain' });
+    setHint(data.faces.length ? '' : 'No face found in this photo. Try a clear, front-facing one.');
+  }
+
+  function clearPhoto() {
+    if (photoUrl) URL.revokeObjectURL(photoUrl);
+    photoUrl = null;
+    photo.removeAttribute('src');
+  }
+
+  // ---------- Natijani qo'llash ----------
+  function apply(data, view) {
+    setKiosk(data.records_attendance);
+    source = { w: data.width, h: data.height, ...view };
+    // chapdan o'ngga tartiblaymiz: ramkalar kadrdan kadrga bir xil indeksda qoladi
+    target = data.faces
+      .map(f => ({ x: f.box[0], y: f.box[1], w: f.box[2], h: f.box[3], ...f }))
+      .sort((a, b) => view.mirror ? b.x - a.x : a.x - b.x);
+    renderFaces(target);
+    for (const f of target) {
       if (f.checked_in && !checkedIn.has(f.name)) {
-        checkedIn.add(f.name);
-        toastEl.textContent = `✓ ${f.name} checked in.`;
-        toastEl.style.display = 'block';
+        checkedIn.set(f.name, new Date());
+        toast(`${pretty(f.name)} checked in`, 'ok');
+        renderSession();
       }
     }
   }
 
-  startBtn.addEventListener('click', start);
-  stopBtn.addEventListener('click', stop);
+  function renderFaces(faces) {
+    $('faces-n').textContent = faces.length;
+    if (!faces.length) {
+      $('faces').innerHTML = `<div class="empty">${mode === 'idle' ? '<strong>Nothing to show yet</strong>Start the camera or upload a photo.' : '<strong>No faces detected</strong>Try better light or move closer.'}</div>`;
+      return;
+    }
+    $('faces').innerHTML = faces.map(f => {
+      const unknown = f.name === 'Unknown';
+      // Masofa 0 da to'liq, chegarada yarim (o'rtadagi chiziq), 2×chegarada bo'sh
+      const strength = Math.max(0.04, Math.min(1, 1 - f.distance / (2 * cfg.threshold)));
+      const color = unknown ? 'var(--no)' : 'var(--ok)';
+      let state;
+      if (unknown) state = '<span class="pill no">Unknown</span>';
+      else if (f.checked_in) state = `<span class="pill ok">${ICONS.check} Checked in</span>`;
+      else if (f.streak) state = `<span class="pill accent num">Hold still ${f.streak}/${cfg.confirm_frames}</span>`;
+      else { const q = matchQuality(f.distance, cfg.threshold); state = `<span class="pill ${q.cls}">${q.label}</span>`; }
+      return `<div class="face">
+        ${avatar(f.name, unknown)}
+        <div class="meta">
+          <div class="name">${unknown ? 'Unknown person' : esc(pretty(f.name))}</div>
+          <div class="sub num">Distance ${esc(f.distance)}</div>
+          <div class="meter" title="Match strength. The middle line is the threshold (${cfg.threshold}); past it counts as a match."><span style="width:${(strength * 100).toFixed(0)}%;background:${color}"></span><i></i></div>
+        </div>
+        ${state}
+      </div>`;
+    }).join('');
+  }
+
+  function renderSession() {
+    $('session-card').hidden = !checkedIn.size;
+    $('session').innerHTML = [...checkedIn].reverse().map(([name, at]) =>
+      `<li>${avatar(name)}<span>${esc(pretty(name))}</span><span class="time num">${at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></li>`).join('');
+  }
+
+  // ---------- Ramkalarni chizish (har kadrda silliq siljitamiz) ----------
+  function draw() {
+    requestAnimationFrame(draw);
+    const rect = overlay.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+    if (overlay.width !== Math.round(rect.width * dpr) || overlay.height !== Math.round(rect.height * dpr)) {
+      overlay.width = Math.round(rect.width * dpr);
+      overlay.height = Math.round(rect.height * dpr);
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, rect.width, rect.height);
+    if (!source || !target.length) { shown = []; return; }
+
+    if (shown.length !== target.length) shown = target.map(f => ({ ...f }));
+    else shown.forEach((s, i) => {
+      const t = target[i];
+      for (const k of ['x', 'y', 'w', 'h']) s[k] += (t[k] - s[k]) * 0.3;
+      Object.assign(s, { name: t.name, distance: t.distance, streak: t.streak, checked_in: t.checked_in });
+    });
+
+    // video "cover" (kesilgan), rasm "contain" (to'liq) ko'rinadi: o'sha masshtabni takrorlaymiz
+    const { w: W, h: H, mirror, fit } = source;
+    const s = (fit === 'cover' ? Math.max : Math.min)(rect.width / W, rect.height / H);
+    const offX = (rect.width - W * s) / 2, offY = (rect.height - H * s) / 2;
+
+    for (const f of shown) {
+      const bx = offX + (mirror ? W - f.x - f.w : f.x) * s, by = offY + f.y * s, bw = f.w * s, bh = f.h * s;
+      const unknown = f.name === 'Unknown';
+      const color = unknown ? COLORS.unknown : COLORS.known;
+
+      ctx.strokeStyle = color; ctx.globalAlpha = 0.35; ctx.lineWidth = 1.5;
+      ctx.strokeRect(bx, by, bw, bh);
+      ctx.globalAlpha = 1; ctx.lineWidth = 3.5; ctx.lineCap = 'round';
+      const c = Math.min(bw, bh) * 0.22;
+      ctx.beginPath();
+      ctx.moveTo(bx, by + c); ctx.lineTo(bx, by); ctx.lineTo(bx + c, by);
+      ctx.moveTo(bx + bw - c, by); ctx.lineTo(bx + bw, by); ctx.lineTo(bx + bw, by + c);
+      ctx.moveTo(bx + bw, by + bh - c); ctx.lineTo(bx + bw, by + bh); ctx.lineTo(bx + bw - c, by + bh);
+      ctx.moveTo(bx + c, by + bh); ctx.lineTo(bx, by + bh); ctx.lineTo(bx, by + bh - c);
+      ctx.stroke();
+
+      const label = (unknown ? 'Unknown' : pretty(f.name)) + (f.checked_in ? '  ✓' : '');
+      ctx.font = '600 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+      const tw = ctx.measureText(label).width + 18, th = 26;
+      const lx = Math.min(Math.max(0, bx), rect.width - tw), ly = by - th - 6 < 0 ? by + bh + 6 : by - th - 6;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(lx, ly, tw, th, 13) : ctx.rect(lx, ly, tw, th);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.fillText(label, lx + 9, ly + 17.5);
+
+      // Kiosk rejimida: tasdiqlashgacha qolgan kadrlar
+      if (!unknown && f.streak && !f.checked_in) {
+        const p = f.streak / cfg.confirm_frames;
+        ctx.fillStyle = 'rgba(255,255,255,.25)';
+        ctx.fillRect(bx, by + bh + 4, bw, 4);
+        ctx.fillStyle = COLORS.progress;
+        ctx.fillRect(bx, by + bh + 4, bw * p, 4);
+      }
+    }
+  }
+
+  // ---------- Hodisalar ----------
+  toggleBtn.addEventListener('click', () => (mode === 'camera' ? stopCamera() : startCamera()));
+  uploadBtn.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', () => { analyzePhoto(fileInput.files[0]); fileInput.value = ''; });
+
+  // Rasmni sahnaga sudrab tashlash ham mumkin
+  const stage = $('stage');
+  stage.addEventListener('dragover', e => { e.preventDefault(); });
+  stage.addEventListener('drop', e => { e.preventDefault(); analyzePhoto(e.dataTransfer.files[0]); });
+
+  document.addEventListener('keydown', e => {
+    if (e.code === 'Space' && e.target === document.body) {
+      e.preventDefault();
+      mode === 'camera' ? stopCamera() : startCamera();
+    }
+  });
+
+  fetch('/api/me').then(r => r.json()).then(me => {
+    Object.assign(cfg, me);
+    $('people-n').textContent = me.people;
+    $('th-n').textContent = me.threshold;
+    $('cf-n').textContent = me.confirm_frames;
+    setKiosk(me.admin);
+    if (me.admin) { $('admin-link').textContent = 'Dashboard'; $('admin-link').href = '/dashboard'; $('try-card').hidden = true; }
+  }).catch(() => {});
+
+  setMode('idle');
+  showPlaceholder('idle', 'Start the camera to try it', 'Or upload a photo. Frames are processed in memory and never saved.');
+  renderFaces([]);
+  requestAnimationFrame(draw);
 </script>
 </body>
 </html>
