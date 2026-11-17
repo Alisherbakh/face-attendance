@@ -11,6 +11,9 @@ FACE_SIZE = (200, 200)      # barcha yuzlar shu o'lchamga keltiriladi
 IMAGES_PER_PERSON = 50      # collect_faces.py har bir odamdan nechta rasm oladi
 THRESHOLD = 75              # LBPH distance shu qiymatdan kichik bo'lsa — "tanildi"
 CONFIRM_FRAMES = 5          # ketma-ket shuncha kadrda tanilsa, davomat yoziladi
+DETECT_MIN_SIZE = 40        # kamera/demo: shundan katta har bir yuzga ramka chiziladi
+RECOGNIZE_MIN_SIZE = 80     # shundan kichik yuz tanilmaydi ("Too far"): LBPH uchun juda xira
+TOO_FAR = "Too far"         # kichik yuz uchun javobdagi nom
 
 # --- Yo'llar ---
 DATASET_DIR = BASE_DIR / "dataset"
@@ -28,9 +31,17 @@ def face_detector() -> cv2.CascadeClassifier:
     return detector
 
 
-def detect_faces(detector, gray):
-    """Oq-qora rasmdagi yuzlar ro'yxati: [(x, y, w, h), ...]."""
-    return detector.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5, minSize=(80, 80))
+def detect_faces(detector, gray, min_size=RECOGNIZE_MIN_SIZE):
+    """Oq-qora rasmdagi yuzlar ro'yxati: [(x, y, w, h), ...].
+
+    Dataset yig'ishda 80 px (faqat aniq yuzlar), kamera/demoda DETECT_MIN_SIZE (uzoqdagilar ham).
+    """
+    return detector.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5, minSize=(min_size, min_size))
+
+
+def too_small(box) -> bool:
+    """Yuz tanish uchun juda kichikmi (kameradan uzoqda)."""
+    return min(box[2], box[3]) < RECOGNIZE_MIN_SIZE
 
 
 _eye_detector = None

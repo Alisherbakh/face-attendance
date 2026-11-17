@@ -7,11 +7,11 @@ from collections import defaultdict
 
 import cv2
 
-from config import (CAMERA_INDEX, CONFIRM_FRAMES, LABELS_PATH, MODEL_PATH, THRESHOLD,
-                    crop_face, detect_faces, face_detector)
+from config import (CAMERA_INDEX, CONFIRM_FRAMES, DETECT_MIN_SIZE, LABELS_PATH, MODEL_PATH, THRESHOLD,
+                    TOO_FAR, crop_face, detect_faces, face_detector, too_small)
 from db import connect, mark_attendance
 
-GREEN, RED, WHITE = (0, 200, 0), (0, 0, 255), (255, 255, 255)
+GREEN, RED, GRAY, WHITE = (0, 200, 0), (0, 0, 255), (150, 150, 150), (255, 255, 255)
 
 
 def main():
@@ -38,9 +38,14 @@ def main():
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         seen = set()
 
-        for box in detect_faces(detector, gray):
-            label, distance = recognizer.predict(crop_face(gray, box))
+        for box in detect_faces(detector, gray, DETECT_MIN_SIZE):
             x, y, w, h = box
+            if too_small(box):  # uzoqdagi yuz: faqat kulrang ramka, tanilmaydi
+                cv2.rectangle(frame, (x, y), (x + w, y + h), GRAY, 2)
+                cv2.putText(frame, TOO_FAR, (x, y - 8), cv2.FONT_HERSHEY_SIMPLEX, 0.5, GRAY, 2)
+                continue
+
+            label, distance = recognizer.predict(crop_face(gray, box))
 
             if distance < THRESHOLD:
                 name, color = names[str(label)], GREEN

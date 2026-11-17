@@ -21,8 +21,8 @@ from pydantic import BaseModel
 
 from auth import COOKIE_NAME, SESSION_SECONDS, AdminAuth
 
-from config import (BASE_DIR, CONFIRM_FRAMES, DATASET_DIR, LABELS_PATH, MODEL_PATH, THRESHOLD,
-                    crop_face, detect_faces, face_detector)
+from config import (BASE_DIR, CONFIRM_FRAMES, DATASET_DIR, DETECT_MIN_SIZE, LABELS_PATH, MODEL_PATH,
+                    THRESHOLD, TOO_FAR, crop_face, detect_faces, face_detector, too_small)
 from db import connect, get_attendance, get_days, mark_attendance
 
 STATIC_DIR = BASE_DIR / "static"
@@ -181,12 +181,16 @@ async def recognize(request: Request):
     faces = []
     with _lock:
         model = load_model()
-        for box in detect_faces(model["detector"], gray):
+        for box in detect_faces(model["detector"], gray, DETECT_MIN_SIZE):
+            x, y, w, h = (int(v) for v in box)
+            if too_small(box):  # uzoqdagi yuz: ramka bor, lekin tanilmaydi va davomat yozilmaydi
+                faces.append({"box": [x, y, w, h], "name": TOO_FAR, "distance": None,
+                              "streak": 0, "checked_in": False})
+                continue
             label, distance = model["recognizer"].predict(crop_face(gray, box))
             known = distance < THRESHOLD
             name = model["names"][str(label)] if known else "Unknown"
             streak = confirm(client, name, distance) if known and kiosk else 0
-            x, y, w, h = (int(v) for v in box)
             faces.append({
                 "box": [x, y, w, h],
                 "name": name,
