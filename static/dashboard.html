@@ -57,6 +57,13 @@
   .foot { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12.5px; margin-top: 12px; }
   .foot .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
 
+  /* Ikkala ro'yxat ham 8 qatorgacha ko'rinadi, qolgani aylantirib (scroll) ko'riladi */
+  .scroll { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+  .scroll::-webkit-scrollbar { width: 6px; }
+  .scroll::-webkit-scrollbar-thumb { background: var(--line); border-radius: 99px; }
+  .table-scroll { max-height: calc(36px + 8 * 59px); }
+  .table-scroll thead th { position: sticky; top: 0; z-index: 1; background: var(--surface); }
+  .people.scroll { max-height: calc(8 * 54px); }
   .people { list-style: none; margin: 0; padding: 0; }
   .people li { display: flex; align-items: center; gap: 12px; padding: 8px 0; font-size: 14px; }
   .people li .avatar { width: 38px; height: 38px; font-size: 13px; }
@@ -154,6 +161,7 @@
           </button>
         </div>
       </div>
+      <div class="scroll table-scroll">
       <table>
         <thead><tr><th>Person</th><th>Time</th><th class="hide-sm">Match</th><th>Status</th></tr></thead>
         <tbody id="present">
@@ -161,13 +169,14 @@
           <tr><td colspan="4"><div class="skeleton" style="height:16px;width:45%"></div></td></tr>
         </tbody>
       </table>
+      </div>
       <div id="present-empty" hidden></div>
       <div class="foot" id="present-foot" hidden><span class="dot"></span><span id="present-foot-text"></span></div>
     </div>
 
     <div class="card">
       <div class="card-head" style="margin-bottom:8px"><h2><span class="h-dot no"></span>Not checked in <span class="count" id="absent-count">0</span></h2></div>
-      <ul class="people" id="absent"></ul>
+      <ul class="people scroll" id="absent"></ul>
     </div>
   </section>
 
