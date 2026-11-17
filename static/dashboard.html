@@ -20,42 +20,66 @@
   .banner { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px; background: var(--no-soft); color: var(--no); font-size: 14px; margin-bottom: 16px; }
   .banner svg { width: 16px; height: 16px; flex: none; }
 
-  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
-  .stat { padding: 16px 18px; }
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .stat { --c: var(--accent); --c-soft: var(--accent-soft); position: relative; overflow: hidden; padding: 18px 20px; display: flex; gap: 14px; align-items: flex-start; }
+  .stat.ok { --c: var(--ok); --c-soft: var(--ok-soft); background: linear-gradient(135deg, color-mix(in srgb, var(--ok) 9%, var(--surface)), var(--surface) 70%); }
+  .stat.no { --c: var(--no); --c-soft: var(--no-soft); background: linear-gradient(135deg, color-mix(in srgb, var(--no) 9%, var(--surface)), var(--surface) 70%); }
+  .stat .ic { width: 40px; height: 40px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--c-soft); color: var(--c); }
+  .stat .ic svg { width: 20px; height: 20px; }
+  .stat .body { flex: 1; min-width: 0; position: relative; z-index: 1; }
   .stat .l { color: var(--muted); font-size: 13px; font-weight: 550; }
-  .stat .n { font-size: 30px; font-weight: 700; letter-spacing: -.02em; margin-top: 4px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+  .stat .n { font-size: 30px; font-weight: 700; letter-spacing: -.02em; margin-top: 2px; line-height: 1.15; font-variant-numeric: tabular-nums; }
   .stat .n small { font-size: 15px; font-weight: 550; color: var(--muted); letter-spacing: 0; }
   .stat .d { font-size: 12.5px; color: var(--muted); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stat .d.up { color: var(--ok); font-weight: 600; }
+  .stat .d.down { color: var(--no); font-weight: 600; }
+  .stat .ghost { position: absolute; right: 12px; top: 16px; width: 46px; height: 46px; color: var(--c); opacity: .12; }
   .bar { height: 6px; border-radius: 99px; background: var(--surface-2); margin-top: 10px; overflow: hidden; }
-  .bar span { display: block; height: 100%; border-radius: 99px; background: var(--ok); transition: width .4s; }
+  .bar span { display: block; height: 100%; border-radius: 99px; background: var(--c); transition: width .4s; }
 
-  .grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
-  .side { display: flex; flex-direction: column; gap: 16px; }
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; margin-bottom: 16px; }
+  .h-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .h-dot.ok { background: var(--ok); box-shadow: 0 0 0 4px var(--ok-soft); }
+  .h-dot.no { background: var(--no); box-shadow: 0 0 0 4px var(--no-soft); }
   .tools { display: flex; gap: 8px; align-items: center; }
-  .tools input { width: 180px; min-height: 34px; padding: 6px 10px 6px 32px; font-size: 13.5px;
+  .tools input { width: 200px; min-height: 34px; padding: 6px 10px 6px 32px; font-size: 13.5px;
                  background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238a919c' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 10px center; }
 
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  th, td { text-align: left; padding: 11px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
   th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; padding-top: 0; }
   th:first-child, td:first-child { padding-left: 0; }
   th:last-child, td:last-child { padding-right: 0; text-align: right; }
   tbody tr:last-child td { border-bottom: none; }
-  .who { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+  tbody tr:hover td { background: color-mix(in srgb, var(--surface-2) 60%, transparent); }
+  .who { display: flex; align-items: center; gap: 12px; font-weight: 600; }
   .dist { color: var(--muted); font-size: 12.5px; margin-left: 6px; }
+  .foot { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12.5px; margin-top: 12px; }
+  .foot .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
 
   .people { list-style: none; margin: 0; padding: 0; }
-  .people li { display: flex; align-items: center; gap: 10px; padding: 7px 0; font-size: 14px; }
-  .people li .avatar { width: 30px; height: 30px; font-size: 12px; opacity: .8; }
+  .people li { display: flex; align-items: center; gap: 12px; padding: 8px 0; font-size: 14px; }
+  .people li .avatar { width: 38px; height: 38px; font-size: 13px; }
+  .people li .nm { font-weight: 600; line-height: 1.25; }
+  .people li .st { color: var(--muted); font-size: 12.5px; }
 
+  .trend { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 24px; align-items: center; }
   .chart { position: relative; }
   .chart svg { display: block; width: 100%; overflow: visible; }
-  .chart .bar-hit { cursor: pointer; }
-  .chart .axis { fill: var(--faint); font: 11px var(--font); font-variant-numeric: tabular-nums; }
-  .tip { position: absolute; pointer-events: none; transform: translate(-50%, calc(-100% - 10px)); background: var(--text); color: var(--bg); font-size: 12.5px; padding: 6px 10px; border-radius: 8px; white-space: nowrap; box-shadow: var(--shadow); }
+  .chart .pt-hit { cursor: pointer; }
+  .chart .axis { fill: var(--faint); font: 11.5px var(--font); font-variant-numeric: tabular-nums; }
+  .chart .val { fill: var(--text); font: 600 12.5px var(--font); font-variant-numeric: tabular-nums; }
+  .tip { position: absolute; pointer-events: none; transform: translate(-50%, calc(-100% - 12px)); background: var(--text); color: var(--bg); font-size: 12.5px; padding: 6px 10px; border-radius: 8px; white-space: nowrap; box-shadow: var(--shadow); }
   .tip b { font-weight: 650; }
+  .summary { border-radius: var(--radius); padding: 20px 22px; border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+             background: linear-gradient(140deg, color-mix(in srgb, var(--accent) 22%, var(--surface)), color-mix(in srgb, var(--accent) 6%, var(--surface))); display: flex; gap: 14px; }
+  .summary .ic { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; flex: none; background: var(--accent-soft); color: var(--accent); }
+  .summary .ic svg { width: 20px; height: 20px; }
+  .summary .l { font-size: 14px; color: var(--muted); font-weight: 550; }
+  .summary .big { font-size: 32px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .summary .pct { font-size: 26px; font-weight: 700; color: var(--ok); font-variant-numeric: tabular-nums; }
 
-  @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 980px) { .grid, .trend { grid-template-columns: 1fr; } .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   @media (max-width: 560px) {
     .page-head h1 { font-size: 24px; }
     .stat .n { font-size: 24px; }
@@ -98,16 +122,30 @@
   </div>
 
   <section class="stats">
-    <div class="card stat"><div class="l">Present</div><div class="n" id="present-n">–</div><div class="d" id="present-d">&nbsp;</div></div>
-    <div class="card stat"><div class="l">Not checked in</div><div class="n" id="absent-n">–</div><div class="d" id="absent-d">&nbsp;</div></div>
-    <div class="card stat"><div class="l">Attendance rate</div><div class="n" id="rate">–</div><div class="bar"><span id="rate-bar" style="width:0"></span></div></div>
-    <div class="card stat"><div class="l">First check-in</div><div class="n" id="first">–</div><div class="d" id="first-d">&nbsp;</div></div>
+    <div class="card stat">
+      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.6c2.7.2 4.6 2 5.3 5.4"/></svg></span>
+      <div class="body"><div class="l">Total people</div><div class="n" id="total-n">–</div><div class="d">registered in the model</div></div>
+      <span class="ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.6c2.7.2 4.6 2 5.3 5.4"/></svg></span>
+    </div>
+    <div class="card stat ok">
+      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+      <div class="body"><div class="l">Checked in</div><div class="n" id="present-n">–</div><div class="d" id="present-d">&nbsp;</div><div class="bar"><span id="present-bar" style="width:0"></span></div></div>
+    </div>
+    <div class="card stat no">
+      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></span>
+      <div class="body"><div class="l">Not checked in</div><div class="n" id="absent-n">–</div><div class="d" id="absent-d">&nbsp;</div><div class="bar"><span id="absent-bar" style="width:0"></span></div></div>
+    </div>
+    <div class="card stat">
+      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+      <div class="body"><div class="l">Attendance rate</div><div class="n" id="rate">–</div><div class="d" id="rate-d">&nbsp;</div></div>
+      <span class="ghost"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V12M12 20V7M19 20V4"/></svg></span>
+    </div>
   </section>
 
   <section class="grid">
     <div class="card">
       <div class="card-head">
-        <h2>Checked in <span class="count" id="present-count">0</span></h2>
+        <h2><span class="h-dot ok"></span>Checked in <span class="count" id="present-count">0</span></h2>
         <div class="tools">
           <input type="search" id="search" placeholder="Search people" aria-label="Search people">
           <button class="btn btn-ghost btn-sm" id="export" title="Download this day as CSV">
@@ -117,26 +155,32 @@
         </div>
       </div>
       <table>
-        <thead><tr><th>Person</th><th>Time</th><th>Match</th></tr></thead>
+        <thead><tr><th>Person</th><th>Time</th><th class="hide-sm">Match</th><th>Status</th></tr></thead>
         <tbody id="present">
-          <tr><td colspan="3"><div class="skeleton" style="height:16px;width:60%"></div></td></tr>
-          <tr><td colspan="3"><div class="skeleton" style="height:16px;width:45%"></div></td></tr>
+          <tr><td colspan="4"><div class="skeleton" style="height:16px;width:60%"></div></td></tr>
+          <tr><td colspan="4"><div class="skeleton" style="height:16px;width:45%"></div></td></tr>
         </tbody>
       </table>
       <div id="present-empty" hidden></div>
+      <div class="foot" id="present-foot" hidden><span class="dot"></span><span id="present-foot-text"></span></div>
     </div>
 
-    <div class="side">
-      <div class="card">
-        <div class="card-head" style="margin-bottom:8px"><h2>Not checked in <span class="count" id="absent-count">0</span></h2></div>
-        <ul class="people" id="absent"></ul>
-      </div>
-      <div class="card">
-        <div class="card-head" style="margin-bottom:10px"><h2>Check-ins, last 30 days</h2></div>
-        <div class="chart" id="chart"></div>
-        <div class="sr-only"><table id="chart-table"></table></div>
+    <div class="card">
+      <div class="card-head" style="margin-bottom:8px"><h2><span class="h-dot no"></span>Not checked in <span class="count" id="absent-count">0</span></h2></div>
+      <ul class="people" id="absent"></ul>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head" style="margin-bottom:6px"><h2><span class="ic-inline" style="color:var(--accent);display:inline-flex"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V12M12 20V7M19 20V4"/></svg></span>Check-ins, last 7 days</h2></div>
+    <div class="trend">
+      <div class="chart" id="chart"></div>
+      <div class="summary">
+        <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></span>
+        <div><div class="l" id="sum-l">Today's attendance</div><div class="big" id="sum-n">–</div><div class="pct" id="sum-p">&nbsp;</div></div>
       </div>
     </div>
+    <div class="sr-only"><table id="chart-table"></table></div>
   </section>
 </main>
 
@@ -188,17 +232,34 @@
     const q = $('search').value.trim().toLowerCase();
     const match = n => !q || pretty(n).toLowerCase().includes(q);
     const { present, absent, total } = last;
+    const pct = n => total ? Math.round(n / total * 100) : 0;
 
+    $('total-n').textContent = total;
     $('present-n').innerHTML = `${present.length}<small> / ${total}</small>`;
-    $('present-d').textContent = total ? `${total} registered people` : 'No one is registered yet';
+    $('present-d').textContent = total ? `${pct(present.length)}% of total` : 'No one is registered yet';
+    $('present-bar').style.width = `${pct(present.length)}%`;
     $('absent-n').textContent = absent.length;
-    $('absent-d').textContent = absent.length ? `${absent.slice(0, 3).map(pretty).join(', ')}${absent.length > 3 ? '…' : ''}` : 'Everyone is here';
-    const rate = total ? Math.round(present.length / total * 100) : 0;
+    $('absent-d').textContent = absent.length ? `${pct(absent.length)}% of total` : 'Everyone is here';
+    $('absent-bar').style.width = `${pct(absent.length)}%`;
+    const rate = pct(present.length);
     $('rate').textContent = `${rate}%`;
-    $('rate-bar').style.width = `${rate}%`;
-    const first = present[0];
-    $('first').textContent = first ? first.time.slice(0, 5) : '–';
-    $('first-d').textContent = first ? pretty(first.name) : 'No check-ins yet';
+
+    // Oldingi kun bilan solishtirish: faqat o'sha kunda check-in bo'lgan bo'lsa
+    const prev = days.find(d => d.day === shift(dayInput.value, -1));
+    const rd = $('rate-d');
+    if (prev && total) {
+      const diff = rate - pct(prev.count);
+      rd.className = `d ${diff > 0 ? 'up' : diff < 0 ? 'down' : ''}`;
+      rd.textContent = `${diff > 0 ? '↑ +' : diff < 0 ? '↓ ' : ''}${diff} pts vs previous day`;
+    } else {
+      rd.className = 'd';
+      const first = present[0];
+      rd.textContent = first ? `first check-in ${first.time.slice(0, 5)}` : 'no check-ins yet';
+    }
+
+    $('sum-l').textContent = isToday() ? "Today's attendance" : 'Attendance this day';
+    $('sum-n').textContent = `${present.length} / ${total}`;
+    $('sum-p').textContent = `${rate}%`;
 
     const rows = present.filter(r => match(r.name));
     $('present-count').textContent = present.length;
@@ -207,7 +268,8 @@
       return `<tr>
         <td><div class="who">${avatar(r.name)}<span>${esc(pretty(r.name))}</span></div></td>
         <td class="num">${esc(r.time.slice(0, 5))}</td>
-        <td><span class="pill ${qy.cls}">${qy.label}</span><span class="dist num mono hide-sm">${esc(r.distance ?? '')}</span></td>
+        <td class="hide-sm"><span class="pill ${qy.cls}">${qy.label}</span><span class="dist num mono">${esc(r.distance ?? '')}</span></td>
+        <td><span class="pill ok">${ICONS.check} Checked in</span></td>
       </tr>`;
     }).join('');
     const empty = $('present-empty');
@@ -215,54 +277,64 @@
     empty.innerHTML = q
       ? `<div class="empty"><strong>No matches</strong>No one named “${esc(q)}” checked in.</div>`
       : `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><strong>No check-ins ${isToday() ? 'yet' : 'on this day'}</strong>${isToday() ? 'Open the kiosk on a device with a camera to start.' : 'Pick another day above.'}</div>`;
+    $('present-foot').hidden = rows.length === 0;
+    $('present-foot-text').textContent = `Showing ${rows.length} of ${present.length} checked-in ${present.length === 1 ? 'person' : 'people'}`;
 
     const abs = absent.filter(match);
     $('absent-count').textContent = absent.length;
     $('absent').innerHTML = abs.length
-      ? abs.map(n => `<li>${avatar(n)}<span>${esc(pretty(n))}</span></li>`).join('')
+      ? abs.map(n => `<li>${avatar(n)}<div><div class="nm">${esc(pretty(n))}</div><div class="st">Not checked in</div></div></li>`).join('')
       : `<li class="empty" style="display:block">${absent.length ? 'No matches' : '<strong>Everyone is here</strong>Full attendance.'}</li>`;
   }
 
-  // ---------- 30 kunlik grafik (bitta qator: bitta rang, legend kerak emas) ----------
+  // ---------- 7 kunlik grafik: maydonli chiziq, har nuqtada qiymat ----------
   function renderChart() {
-    const box = $('chart'), W = box.clientWidth || 300, H = 140, padB = 20, padT = 8, padL = 22;
+    const box = $('chart'), W = box.clientWidth || 600, H = 180, padB = 26, padT = 26, padL = 28, padR = 16;
     const counts = new Map(days.map(d => [d.day, d.count]));
     const series = [];
-    for (let i = 29; i >= 0; i--) { const day = shift(today(), -i); series.push({ day, count: counts.get(day) || 0 }); }
+    for (let i = 6; i >= 0; i--) { const day = shift(today(), -i); series.push({ day, count: counts.get(day) || 0 }); }
     const max = Math.max(1, last?.total || 0, ...series.map(s => s.count));
-    const plotW = W - padL, plotH = H - padB - padT, slot = plotW / series.length, bw = Math.max(2, slot - 2);
+    const plotW = W - padL - padR, plotH = H - padB - padT;
+    const x = i => padL + (series.length === 1 ? plotW / 2 : i * plotW / (series.length - 1));
     const y = v => padT + plotH - (v / max) * plotH;
     const fmt = s => parse(s).toLocaleDateString([], { day: 'numeric', month: 'short' });
+    const ticks = [0, Math.round(max / 3), Math.round(max * 2 / 3), max].filter((v, k, a) => a.indexOf(v) === k);
 
-    // faqat tepasi yumaloq ustun
-    const barPath = (x, top, w, h) => {
-      const r = Math.min(4, w / 2, h);
-      return `M${x},${top + h}V${top + r}Q${x},${top} ${x + r},${top}H${x + w - r}Q${x + w},${top} ${x + w},${top + r}V${top + h}Z`;
-    };
+    const line = series.map((s, i) => `${i ? 'L' : 'M'}${x(i)},${y(s.count)}`).join('');
+    const area = `${line}L${x(series.length - 1)},${y(0)}L${x(0)},${y(0)}Z`;
 
-    let svg = `<svg width="${W}" height="${H}" role="img" aria-label="Check-ins per day over the last 30 days">`;
-    svg += `<line x1="${padL}" x2="${W}" y1="${y(max)}" y2="${y(max)}" stroke="var(--line)" stroke-dasharray="3 3"/>`;
-    svg += `<line x1="${padL}" x2="${W}" y1="${y(0)}" y2="${y(0)}" stroke="var(--line)"/>`;
-    svg += `<text class="axis" x="${padL - 6}" y="${y(max) + 4}" text-anchor="end">${max}</text>`;
-    svg += `<text class="axis" x="${padL - 6}" y="${y(0) + 4}" text-anchor="end">0</text>`;
-    series.forEach((s, i) => {
-      const x = padL + i * slot + 1, h = y(0) - y(s.count), sel = s.day === dayInput.value;
-      if (s.count) svg += `<path d="${barPath(x, y(s.count), bw, h)}" fill="var(--chart)" opacity="${sel ? 1 : 0.75}"/>`;
-      if (sel) svg += `<circle cx="${x + bw / 2}" cy="${H - padB + 7}" r="2.5" fill="var(--text)"/>`;
-      svg += `<rect class="bar-hit" data-i="${i}" x="${padL + i * slot}" y="${padT}" width="${slot}" height="${plotH + 12}" fill="transparent"/>`;
+    let svg = `<svg width="${W}" height="${H}" role="img" aria-label="Check-ins per day over the last 7 days">`;
+    svg += '<defs><linearGradient id="area-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--chart)" stop-opacity=".45"/><stop offset="1" stop-color="var(--chart)" stop-opacity="0"/></linearGradient></defs>';
+    ticks.forEach(v => {
+      svg += `<line x1="${padL}" x2="${W - padR}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" ${v ? 'stroke-dasharray="3 4"' : ''}/>`;
+      svg += `<text class="axis" x="${padL - 8}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
     });
-    svg += `<text class="axis" x="${padL}" y="${H - 2}">${fmt(series[0].day)}</text>`;
-    svg += `<text class="axis" x="${W}" y="${H - 2}" text-anchor="end">Today</text>`;
+    series.forEach((s, i) => { svg += `<line x1="${x(i)}" x2="${x(i)}" y1="${y(s.count)}" y2="${y(0)}" stroke="var(--line)" stroke-width="1"/>`; });
+    svg += `<path d="${area}" fill="url(#area-g)"/>`;
+    svg += `<path d="${line}" fill="none" stroke="var(--chart)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
+    series.forEach((s, i) => {
+      const sel = s.day === dayInput.value, cx = x(i), cy = y(s.count);
+      if (sel) {
+        const label = String(s.count), w = 14 + label.length * 8;
+        svg += `<rect x="${cx - w / 2}" y="${cy - 34}" width="${w}" height="22" rx="7" fill="var(--chart)"/>`;
+        svg += `<text class="val" x="${cx}" y="${cy - 19}" text-anchor="middle" style="fill:#fff">${label}</text>`;
+      } else {
+        svg += `<text class="val" x="${cx}" y="${cy - 12}" text-anchor="middle">${s.count}</text>`;
+      }
+      svg += `<circle cx="${cx}" cy="${cy}" r="${sel ? 6 : 4.5}" fill="var(--surface)" stroke="var(--chart)" stroke-width="3"/>`;
+      svg += `<text class="axis" x="${cx}" y="${H - 6}" text-anchor="middle">${i === series.length - 1 ? 'Today' : fmt(s.day)}</text>`;
+      svg += `<rect class="pt-hit" data-i="${i}" x="${cx - plotW / 14}" y="${padT - 20}" width="${plotW / 7}" height="${plotH + 40}" fill="transparent"/>`;
+    });
     svg += '</svg><div class="tip" id="tip" hidden></div>';
     box.innerHTML = svg;
 
     const tip = $('tip');
-    box.querySelectorAll('.bar-hit').forEach(el => {
-      const s = series[+el.dataset.i];
+    box.querySelectorAll('.pt-hit').forEach(el => {
+      const i = +el.dataset.i, s = series[i];
       el.addEventListener('mouseenter', () => {
         tip.innerHTML = `<b>${fmt(s.day)}</b> · ${s.count} checked in`;
-        tip.style.left = `${+el.getAttribute('x') + slot / 2}px`;
-        tip.style.top = `${y(s.count)}px`;
+        tip.style.left = `${x(i)}px`;
+        tip.style.top = `${y(s.count) - 10}px`;
         tip.hidden = false;
       });
       el.addEventListener('mouseleave', () => { tip.hidden = true; });
